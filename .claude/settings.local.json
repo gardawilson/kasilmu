@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\kasilmu_pwa_project\\\\kasilmu-pwa\\\\src\\\\features\\\\pengajar\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\kasilmu_pwa_project\\\\kasilmu-pwa\\\\src\\\\components\\\\ui\")",
+      "Bash(php artisan *)",
+      "Bash(php -l app/Models/ProgramTingkat.php)",
+      "Bash(php -l app/Models/Program.php)",
+      "Bash(php -l app/Models/Siswa.php)",
+      "Bash(php -l app/Http/Controllers/Api/ProgramController.php)",
+      "Bash(php -l app/Http/Controllers/Api/KelasController.php)",
+      "Bash(php -l database/seeders/ProgramSeeder.php)",
+      "Bash(php -l database/seeders/SiswaSeeder.php)",
+      "Bash(npx tsc *)",
+      "Bash(curl -s http://127.0.0.1:8000/api/program -H 'Authorization: Bearer 23|ExlyHs0E6YT0nOgBUHfmIOOWoMIX7D69G4Bl5vQaefd6ba0b' -H 'Accept: application/json')",
+      "Bash(curl -s http://127.0.0.1:8000/api/kelas?tingkat=6 -H 'Authorization: Bearer 23|ExlyHs0E6YT0nOgBUHfmIOOWoMIX7D69G4Bl5vQaefd6ba0b' -H 'Accept: application/json')",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' -X POST http://127.0.0.1:8000/api/siswa -H 'Authorization: Bearer 23|ExlyHs0E6YT0nOgBUHfmIOOWoMIX7D69G4Bl5vQaefd6ba0b' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{\"nis\":\"ELIGTEST1\",\"nama\":\"Elig Test 1\",\"tgl_lahir\":\"2013-01-01\",\"jenjang\":\"SD\",\"tingkat\":6,\"kelas_id\":3}')",
+      "Bash(curl -s http://127.0.0.1:8000/api/siswa?search=ELIGTEST1 -H 'Authorization: Bearer 23|ExlyHs0E6YT0nOgBUHfmIOOWoMIX7D69G4Bl5vQaefd6ba0b' -H 'Accept: application/json')",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' -X POST http://127.0.0.1:8000/api/siswa -H 'Authorization: Bearer 23|ExlyHs0E6YT0nOgBUHfmIOOWoMIX7D69G4Bl5vQaefd6ba0b' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{\"nis\":\"ELIGTEST2\",\"nama\":\"Elig Test 2\",\"tgl_lahir\":\"2013-01-01\",\"jenjang\":\"SD\",\"tingkat\":6,\"kelas_id\":1}')",
+      "Bash(curl -s -X DELETE http://127.0.0.1:8000/api/siswa/16 -H 'Authorization: Bearer 23|ExlyHs0E6YT0nOgBUHfmIOOWoMIX7D69G4Bl5vQaefd6ba0b' -H 'Accept: application/json')",
+      "Bash(npm run *)",
+      "Bash(disown)"
+    ]
+  }
+}
