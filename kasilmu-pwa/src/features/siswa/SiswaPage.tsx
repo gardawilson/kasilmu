@@ -102,7 +102,7 @@ export default function SiswaPage() {
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: '#475569' }}>{siswa.sekolah || '-'}</TableCell>
+                  <TableCell sx={{ color: '#475569' }}>{siswa.sekolah?.nama || '-'}</TableCell>
                   <TableCell sx={{ color: '#475569' }}>
                     {siswa.tingkat ? `${siswa.jenjang} - Tingkat ${siswa.tingkat}` : (siswa.kelas_asal || '-')}
                   </TableCell>

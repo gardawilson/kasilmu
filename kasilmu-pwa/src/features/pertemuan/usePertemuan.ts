@@ -23,6 +23,14 @@ export function usePertemuanDetail(id: number) {
   })
 }
 
+export function useMulaiPertemuan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (kelas_id: number) => api.post<ApiResponse<Pertemuan>>('/pertemuan/mulai', { kelas_id }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pertemuan'] }),
+  })
+}
+
 export function useCreatePertemuan() {
   const qc = useQueryClient()
   return useMutation({

@@ -47,7 +47,7 @@ class KelasController
 
     public function show(Kela $kela)
     {
-        $kela->load(['tutor', 'siswa', 'jadwals', 'pertemuans']);
+        $kela->load(['tutor', 'siswa.sekolah', 'jadwals', 'pertemuans']);
         $kela->loadCount('pertemuans');
 
         return $this->success($kela);

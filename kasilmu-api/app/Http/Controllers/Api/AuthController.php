@@ -29,7 +29,7 @@ class AuthController
         $token = $user->createToken('kasilmu-token')->plainTextToken;
 
         return $this->success([
-            'user'  => $user,
+            'user'  => $user->load('roles', 'tutor:id,user_id,nama'),
             'token' => $token,
         ], 'Login berhasil');
     }
@@ -43,7 +43,7 @@ class AuthController
 
     public function me(Request $request)
     {
-        return $this->success($request->user()->load('roles'), 'Profil user');
+        return $this->success($request->user()->load('roles', 'tutor:id,user_id,nama'), 'Profil user');
     }
 
     public function updateProfile(Request $request)

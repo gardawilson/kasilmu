@@ -7,7 +7,7 @@ import {
 import {
   Menu as MenuIcon, Dashboard, People, School, CalendarMonth,
   Receipt, Logout, Group, Assessment, HowToReg, Grade,
-  ChevronLeft, AccountCircle,
+  ChevronLeft, AccountCircle, AccountBalance,
 } from '@mui/icons-material'
 import { useAuth } from '../../features/auth/useAuth'
 
@@ -19,6 +19,7 @@ const menu = [
   { label: 'Siswa', icon: <People fontSize="small" />, path: '/siswa', color: '#10b981' },
   { label: 'Pengajar', icon: <Group fontSize="small" />, path: '/pengajar', color: '#8b5cf6' },
   { label: 'Kelas', icon: <School fontSize="small" />, path: '/kelas', color: '#0d9488' },
+  { label: 'Sekolah', icon: <AccountBalance fontSize="small" />, path: '/sekolah', color: '#0284c7' },
   { label: 'Jadwal', icon: <CalendarMonth fontSize="small" />, path: '/jadwal', color: '#6366f1' },
   { label: 'Presensi', icon: <HowToReg fontSize="small" />, path: '/presensi', color: '#06b6d4' },
   { label: 'Pembayaran', icon: <Receipt fontSize="small" />, path: '/pembayaran', color: '#f97316' },

@@ -14,7 +14,7 @@ class SiswaController
 
     public function index(Request $request)
     {
-        $query = Siswa::query();
+        $query = Siswa::with('sekolah');
 
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
@@ -31,16 +31,24 @@ class SiswaController
         return $this->paginated($query->latest()->paginate($request->per_page ?? 10));
     }
 
+    private function generateNis(): string
+    {
+        $year = now()->format('Y');
+        $last = Siswa::where('nis', 'like', $year . '%')->orderByDesc('nis')->value('nis');
+        $next = $last ? ((int) substr($last, 4)) + 1 : 1;
+
+        return $year . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nis'          => 'required|string|max:20|unique:siswas,nis',
             'nama'         => 'required|string|max:255',
             'email'        => 'nullable|email|max:255',
             'no_telp'      => 'nullable|string|max:20',
             'tgl_lahir'    => 'required|date',
             'alamat'       => 'nullable|string',
-            'sekolah'      => 'nullable|string|max:255',
+            'sekolah_id'   => 'nullable|exists:sekolahs,id',
             'kelas_asal'   => 'nullable|string|max:50',
             'tingkat'      => 'required|integer|between:1,12',
             'jenjang'      => 'required|in:SD,SMP,SMA',
@@ -56,6 +64,7 @@ class SiswaController
 
         try {
             $siswa = DB::transaction(function () use ($validated, $kelasId) {
+                $validated['nis'] = $this->generateNis();
                 $siswa = Siswa::create($validated);
 
                 $kela = Kela::findOrFail($kelasId);
@@ -80,7 +89,7 @@ class SiswaController
 
     public function show(Siswa $siswa)
     {
-        $siswa->load(['kelas', 'tagihans', 'nilais']);
+        $siswa->load(['kelas', 'tagihans', 'nilais', 'sekolah']);
 
         return $this->success($siswa);
     }
@@ -88,13 +97,12 @@ class SiswaController
     public function update(Request $request, Siswa $siswa)
     {
         $validated = $request->validate([
-            'nis'          => 'required|string|max:20|unique:siswas,nis,' . $siswa->id,
             'nama'         => 'required|string|max:255',
             'email'        => 'nullable|email|max:255',
             'no_telp'      => 'nullable|string|max:20',
             'tgl_lahir'    => 'required|date',
             'alamat'       => 'nullable|string',
-            'sekolah'      => 'nullable|string|max:255',
+            'sekolah_id'   => 'nullable|exists:sekolahs,id',
             'kelas_asal'   => 'nullable|string|max:50',
             'tingkat'      => 'required|integer|between:1,12',
             'jenjang'      => 'required|in:SD,SMP,SMA',

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  TextField, MenuItem, Alert,
+  TextField, MenuItem, Alert, Autocomplete,
 } from '@mui/material'
 import { useForm } from 'react-hook-form'
 import { useCreateSiswa, useUpdateSiswa } from './useSiswa'
 import { useKelas } from '../kelas/useKelas'
+import { useSekolah, useCreateSekolah } from '../sekolah/useSekolah'
 import type { Siswa } from '../../types'
 
 interface Props {
@@ -26,12 +27,15 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<SiswaFormData>()
   const create = useCreateSiswa()
   const update = useUpdateSiswa(editData?.id || 0)
+  const createSekolah = useCreateSekolah()
   const [submitError, setSubmitError] = useState('')
+  const [sekolahNama, setSekolahNama] = useState('')
 
   const selectedJenjang = watch('jenjang')
   const selectedKelasId = watch('kelas_id')
 
   const { data: kelasList } = useKelas({ status: 'aktif', per_page: 100 })
+  const { data: sekolahList } = useSekolah()
   const selectedKelas = kelasList?.data?.find((k) => k.id === Number(selectedKelasId))
 
   useEffect(() => {
@@ -39,16 +43,15 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
       setSubmitError('')
       if (editData) {
         reset(editData)
+        setSekolahNama(editData.sekolah?.nama || '')
       } else {
         reset({
           status: 'aktif',
-          nis: '',
           nama: '',
           email: '',
           no_telp: '',
           tgl_lahir: '',
           alamat: '',
-          sekolah: '',
           kelas_asal: '',
           jenjang: undefined,
           tingkat: undefined,
@@ -56,6 +59,7 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
           no_telp_ortu: '',
           kelas_id: undefined,
         })
+        setSekolahNama('')
       }
     }
   }, [open, editData, reset])
@@ -63,6 +67,14 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
   const onSubmit = async (data: SiswaFormData) => {
     setSubmitError('')
     try {
+      const nama = sekolahNama.trim()
+      if (nama) {
+        const existing = sekolahList?.data?.find((s) => s.nama.toLowerCase() === nama.toLowerCase())
+        data.sekolah_id = existing ? existing.id : (await createSekolah.mutateAsync(nama)).data.data.id
+      } else {
+        data.sekolah_id = null
+      }
+
       if (editData) {
         await update.mutateAsync(data)
       } else {
@@ -81,9 +93,9 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
           {submitError && <Alert severity="error" sx={{ mb: 2 }}>{submitError}</Alert>}
-          <TextField label="NIS" fullWidth margin="dense" required
-            {...register('nis', { required: 'NIS wajib diisi' })}
-            error={!!errors.nis} helperText={errors.nis?.message} />
+          {editData && (
+            <TextField label="NIS" fullWidth margin="dense" value={editData.nis} disabled />
+          )}
           <TextField label="Nama Lengkap" fullWidth margin="dense" required
             {...register('nama', { required: 'Nama wajib diisi' })}
             error={!!errors.nama} helperText={errors.nama?.message} />
@@ -97,8 +109,16 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
             error={!!errors.tgl_lahir} helperText={errors.tgl_lahir?.message} />
           <TextField label="Alamat" fullWidth margin="dense" multiline rows={2}
             {...register('alamat')} />
-          <TextField label="Sekolah" fullWidth margin="dense"
-            {...register('sekolah')} />
+          <Autocomplete
+            freeSolo
+            options={sekolahList?.data?.map((s) => s.nama) ?? []}
+            inputValue={sekolahNama}
+            onInputChange={(_, value) => setSekolahNama(value)}
+            renderInput={(params) => (
+              <TextField {...params} label="Sekolah" fullWidth margin="dense"
+                helperText="Pilih dari daftar atau ketik nama sekolah baru" />
+            )}
+          />
           <TextField label="Jenjang" fullWidth margin="dense" select required
             {...register('jenjang', { required: 'Jenjang wajib dipilih' })}
             error={!!errors.jenjang} helperText={errors.jenjang?.message}

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\NilaiController;
 use App\Http\Controllers\Api\PembayaranController;
 use App\Http\Controllers\Api\PertemuanController;
+use App\Http\Controllers\Api\SekolahController;
 use App\Http\Controllers\Api\SiswaController;
 use App\Http\Controllers\Api\TagihanController;
 use App\Http\Controllers\Api\TutorController;
@@ -23,15 +24,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('siswa', SiswaController::class);
+        Route::get('sekolah', [SekolahController::class, 'index']);
+        Route::post('sekolah', [SekolahController::class, 'store']);
+        Route::put('sekolah/{sekolah}', [SekolahController::class, 'update']);
+        Route::delete('sekolah/{sekolah}', [SekolahController::class, 'destroy']);
         Route::apiResource('tutor', TutorController::class);
         Route::post('kelas', [KelasController::class, 'store']);
         Route::put('kelas/{kela}', [KelasController::class, 'update']);
         Route::delete('kelas/{kela}', [KelasController::class, 'destroy']);
         Route::post('kelas/{kela}/siswa', [KelasController::class, 'addSiswa']);
         Route::delete('kelas/{kela}/siswa/{siswa}', [KelasController::class, 'removeSiswa']);
-        Route::post('jadwal', [JadwalController::class, 'store']);
-        Route::put('jadwal/{jadwal}', [JadwalController::class, 'update']);
-        Route::delete('jadwal/{jadwal}', [JadwalController::class, 'destroy']);
         Route::post('tagihan', [TagihanController::class, 'store']);
         Route::put('tagihan/{tagihan}', [TagihanController::class, 'update']);
         Route::delete('tagihan/{tagihan}', [TagihanController::class, 'destroy']);
@@ -44,6 +46,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:admin|tutor')->group(function () {
+        Route::get('jadwal/hari-ini', [JadwalController::class, 'hariIni']);
+        Route::post('jadwal', [JadwalController::class, 'store']);
+        Route::put('jadwal/{jadwal}', [JadwalController::class, 'update']);
+        Route::delete('jadwal/{jadwal}', [JadwalController::class, 'destroy']);
+        Route::post('pertemuan/mulai', [PertemuanController::class, 'mulai']);
         Route::post('pertemuan', [PertemuanController::class, 'store']);
         Route::put('pertemuan/{pertemuan}', [PertemuanController::class, 'update']);
         Route::delete('pertemuan/{pertemuan}', [PertemuanController::class, 'destroy']);

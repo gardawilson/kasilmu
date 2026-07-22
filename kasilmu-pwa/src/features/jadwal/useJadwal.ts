@@ -12,6 +12,16 @@ export function useJadwal(params: { kelas_id?: string; hari?: string; page?: num
   })
 }
 
+export function useJadwalHariIni() {
+  return useQuery({
+    queryKey: ['jadwal-hari-ini'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<Jadwal[]>>('/jadwal/hari-ini')
+      return res.data
+    },
+  })
+}
+
 export function useCreateJadwal() {
   const qc = useQueryClient()
   return useMutation({

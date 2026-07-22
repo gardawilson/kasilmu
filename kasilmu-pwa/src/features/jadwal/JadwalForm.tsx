@@ -5,6 +5,7 @@ import {
 import { useForm } from 'react-hook-form'
 import { useCreateJadwal, useUpdateJadwal } from './useJadwal'
 import { useKelas } from '../kelas/useKelas'
+import { useAuth } from '../auth/useAuth'
 import type { Jadwal } from '../../types'
 
 const HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
@@ -19,7 +20,10 @@ export default function JadwalForm({ open, onClose, editData }: Props) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Partial<Jadwal>>()
   const create = useCreateJadwal()
   const update = useUpdateJadwal(editData?.id || 0)
+  const { user } = useAuth()
   const { data: kelas } = useKelas({ per_page: 100 })
+  const isTutor = user?.roles?.some((r) => r.name === 'tutor')
+  const kelasList = isTutor ? kelas?.data?.filter((k) => k.tutor_id === user?.tutor?.id) : kelas?.data
 
   useEffect(() => {
     if (open) {
@@ -48,7 +52,7 @@ export default function JadwalForm({ open, onClose, editData }: Props) {
             error={!!errors.kelas_id}
             slotProps={{ select: { displayEmpty: true } }}>
             <MenuItem value="" disabled>-- Pilih Kelas --</MenuItem>
-            {kelas?.data?.map((k) => (
+            {kelasList?.map((k) => (
               <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
             ))}
           </TextField>

@@ -6,6 +6,12 @@ export interface User {
   foto: string | null
   is_active: boolean
   roles: { id: number; name: string }[]
+  tutor?: { id: number; nama: string } | null
+}
+
+export interface Sekolah {
+  id: number
+  nama: string
 }
 
 export interface Siswa {
@@ -16,7 +22,8 @@ export interface Siswa {
   no_telp: string | null
   tgl_lahir: string
   alamat: string | null
-  sekolah: string | null
+  sekolah_id: number | null
+  sekolah?: Sekolah | null
   kelas_asal: string | null
   tingkat: number | null
   jenjang: 'SD' | 'SMP' | 'SMA' | null

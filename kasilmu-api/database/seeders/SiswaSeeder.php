@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Sekolah;
 use App\Models\Siswa;
 use Illuminate\Database\Seeder;
 
@@ -23,6 +24,9 @@ class SiswaSeeder extends Seeder
         ];
 
         foreach ($siswas as $siswa) {
+            $siswa['sekolah_id'] = Sekolah::firstOrCreate(['nama' => $siswa['sekolah']])->id;
+            unset($siswa['sekolah']);
+
             Siswa::create($siswa);
         }
     }

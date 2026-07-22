@@ -80,7 +80,7 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
                     <TableRow key={siswa.id}>
                       <TableCell>{siswa.nis}</TableCell>
                       <TableCell>{siswa.nama}</TableCell>
-                      <TableCell>{siswa.sekolah || '-'}</TableCell>
+                      <TableCell>{siswa.sekolah?.nama || '-'}</TableCell>
                       <TableCell align="center">
                         <IconButton size="small" color="error"
                           onClick={() => remove.mutateAsync(siswa.id)} disabled={remove.isPending}>

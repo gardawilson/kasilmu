@@ -10,6 +10,32 @@ class JadwalController
 {
     use ApiResponse;
 
+    private const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+    private function isOwnKelas(Request $request, Kela $kela): bool
+    {
+        if (! $request->user()->hasRole('tutor')) {
+            return true;
+        }
+
+        return $kela->tutor_id === $request->user()->tutor?->id;
+    }
+
+    public function hariIni(Request $request)
+    {
+        $hari = self::HARI[now()->dayOfWeek];
+
+        $query = Jadwal::with(['kelas:id,nama,mata_pelajaran,tutor_id'])
+            ->where('hari', $hari);
+
+        if ($request->user()->hasRole('tutor')) {
+            $tutorId = $request->user()->tutor?->id;
+            $query->whereHas('kelas', fn ($q) => $q->where('tutor_id', $tutorId));
+        }
+
+        return $this->success($query->orderBy('jam_mulai')->get());
+    }
+
     public function index(Request $request)
     {
         $query = Jadwal::with(['kelas:id,nama']);
@@ -35,6 +61,12 @@ class JadwalController
             'ruang'       => 'nullable|string|max:50',
         ]);
 
+        $kela = Kela::findOrFail($validated['kelas_id']);
+
+        if (! $this->isOwnKelas($request, $kela)) {
+            return $this->error('Anda tidak memiliki akses ke kelas ini', 403);
+        }
+
         $jadwal = Jadwal::create($validated);
 
         return $this->success($jadwal->load('kelas:id,nama'), 'Jadwal berhasil ditambahkan', 201);
@@ -57,13 +89,21 @@ class JadwalController
             'ruang'       => 'nullable|string|max:50',
         ]);
 
+        if (! $this->isOwnKelas($request, $jadwal->kelas)) {
+            return $this->error('Anda tidak memiliki akses ke kelas ini', 403);
+        }
+
         $jadwal->update($validated);
 
         return $this->success($jadwal->load('kelas:id,nama'), 'Jadwal berhasil diperbarui');
     }
 
-    public function destroy(Jadwal $jadwal)
+    public function destroy(Request $request, Jadwal $jadwal)
     {
+        if (! $this->isOwnKelas($request, $jadwal->kelas)) {
+            return $this->error('Anda tidak memiliki akses ke kelas ini', 403);
+        }
+
         $jadwal->delete();
 
         return $this->success(null, 'Jadwal berhasil dihapus');
