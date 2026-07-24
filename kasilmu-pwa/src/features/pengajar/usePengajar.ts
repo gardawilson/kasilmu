@@ -2,13 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
 import type { Pengajar, ApiResponse } from '../../types'
 
-export function usePengajar(params: { search?: string; page?: number; per_page?: number }) {
+export function usePengajar(params: { search?: string; page?: number; per_page?: number; enabled?: boolean }) {
+  const { enabled = true, ...queryParams } = params
   return useQuery({
-    queryKey: ['pengajar', params],
+    queryKey: ['pengajar', queryParams],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<Pengajar[]>>('/tutor', { params })
+      const res = await api.get<ApiResponse<Pengajar[]>>('/tutor', { params: queryParams })
       return res.data
     },
+    enabled,
   })
 }
 

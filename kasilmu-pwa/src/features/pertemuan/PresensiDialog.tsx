@@ -4,15 +4,13 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, ToggleButtonGroup,
   ToggleButton, TextField, Box, Typography,
 } from '@mui/material'
-import { CheckCircle, Cancel, MedicalServices, HelpOutlined } from '@mui/icons-material'
+import { CheckCircle, Cancel } from '@mui/icons-material'
 import { usePertemuanDetail, usePresensi, useStorePresensi } from './usePertemuan'
 import { useKelasDetail } from '../kelas/useKelas'
 
 const STATUS_KEHADIRAN = [
   { value: 'hadir', label: 'Hadir', icon: <CheckCircle fontSize="small" />, color: 'success' },
-  { value: 'izin', label: 'Izin', icon: <MedicalServices fontSize="small" />, color: 'info' },
-  { value: 'sakit', label: 'Sakit', icon: <HelpOutlined fontSize="small" />, color: 'warning' },
-  { value: 'alpha', label: 'Alpha', icon: <Cancel fontSize="small" />, color: 'error' },
+  { value: 'tidak_hadir', label: 'Tidak Hadir', icon: <Cancel fontSize="small" />, color: 'error' },
 ]
 
 interface Props {
@@ -22,7 +20,7 @@ interface Props {
 }
 
 interface PresensiState {
-  [siswaId: number]: { status: string; keterangan: string }
+  [siswaId: number]: { status: string; keterangan: string; catatan: string }
 }
 
 export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
@@ -46,6 +44,7 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
         initial[s.id] = {
           status: existing?.status || 'hadir',
           keterangan: existing?.keterangan || '',
+          catatan: existing?.catatan || '',
         }
       }
       setDataSiswa(initial)
@@ -57,13 +56,14 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       siswa_id: Number(siswaId),
       status: val.status,
       keterangan: val.keterangan || undefined,
+      catatan: val.catatan || undefined,
     }))
     await save.mutateAsync(payload)
     setSaved(true)
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         Presensi — {pertemuan?.data?.kelas?.nama ?? ''} (Pertemuan #{pertemuan?.data?.pertemuan_ke})
         <Typography variant="caption" sx={{ display: 'block' }} color="text.secondary">
@@ -83,11 +83,12 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
               <TableCell>Nama</TableCell>
               <TableCell>Kehadiran</TableCell>
               <TableCell>Keterangan</TableCell>
+              <TableCell>Catatan Performa Hari Ini</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {siswaList.length === 0 ? (
-              <TableRow><TableCell colSpan={4} align="center">Belum ada siswa di kelas ini</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} align="center">Belum ada siswa di kelas ini</TableCell></TableRow>
             ) : (
               siswaList.map((siswa: any) => (
                 <TableRow key={siswa.id}>
@@ -100,7 +101,11 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                       onChange={(_, val) => {
                         if (val) setDataSiswa((prev) => ({
                           ...prev,
-                          [siswa.id]: { ...prev[siswa.id], status: val },
+                          [siswa.id]: {
+                            ...prev[siswa.id],
+                            status: val,
+                            keterangan: val === 'hadir' ? '' : prev[siswa.id]?.keterangan,
+                          },
                         }))
                       }}
                     >
@@ -112,13 +117,25 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                     </ToggleButtonGroup>
                   </TableCell>
                   <TableCell>
-                    <TextField size="small" placeholder="Keterangan"
-                      value={dataSiswa[siswa.id]?.keterangan || ''}
+                    {dataSiswa[siswa.id]?.status !== 'hadir' && (
+                      <TextField size="small" placeholder="Misal: izin, sakit, alpha"
+                        value={dataSiswa[siswa.id]?.keterangan || ''}
+                        onChange={(e) => setDataSiswa((prev) => ({
+                          ...prev,
+                          [siswa.id]: { ...prev[siswa.id], keterangan: e.target.value },
+                        }))}
+                        sx={{ minWidth: 140 }} />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <TextField size="small" placeholder="Misal: sudah paham perkalian, perlu latihan soal cerita"
+                      multiline maxRows={2}
+                      value={dataSiswa[siswa.id]?.catatan || ''}
                       onChange={(e) => setDataSiswa((prev) => ({
                         ...prev,
-                        [siswa.id]: { ...prev[siswa.id], keterangan: e.target.value },
+                        [siswa.id]: { ...prev[siswa.id], catatan: e.target.value },
                       }))}
-                      sx={{ minWidth: 140 }} />
+                      sx={{ minWidth: 260 }} />
                   </TableCell>
                 </TableRow>
               ))

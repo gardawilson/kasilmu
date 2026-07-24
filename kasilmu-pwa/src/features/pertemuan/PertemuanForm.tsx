@@ -5,6 +5,8 @@ import {
 import { useForm } from 'react-hook-form'
 import { useCreatePertemuan, useUpdatePertemuan } from './usePertemuan'
 import { useKelas } from '../kelas/useKelas'
+import { usePengajar } from '../pengajar/usePengajar'
+import { useAuth } from '../auth/useAuth'
 import type { Pertemuan } from '../../types'
 
 interface Props {
@@ -14,14 +16,17 @@ interface Props {
 }
 
 export default function PertemuanForm({ open, onClose, editData }: Props) {
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Partial<Pertemuan>>()
   const create = useCreatePertemuan()
   const update = useUpdatePertemuan(editData?.id || 0)
   const { data: kelas } = useKelas({ per_page: 100 })
+  const { data: pengajar } = usePengajar({ per_page: 100, enabled: isAdmin })
 
   useEffect(() => {
     if (open) {
-      reset(editData ?? { kelas_id: 0, pertemuan_ke: 1, tgl: '', materi: '', status: 'terlaksana' })
+      reset(editData ?? { kelas_id: 0, tutor_id: null, pertemuan_ke: 1, tgl: '', materi: '', status: 'terlaksana' })
     }
   }, [open, editData, reset])
 
@@ -54,6 +59,16 @@ export default function PertemuanForm({ open, onClose, editData }: Props) {
             {...register('tgl', { required: 'Tanggal wajib diisi' })}
             error={!!errors.tgl}
             slotProps={{ inputLabel: { shrink: true } }} />
+          {isAdmin && (
+            <TextField label="Pengajar" fullWidth margin="dense" select
+              {...register('tutor_id')}
+              slotProps={{ select: { displayEmpty: true } }}>
+              <MenuItem value="">-- Belum Ditentukan --</MenuItem>
+              {pengajar?.data?.map((p) => (
+                <MenuItem key={p.id} value={p.id}>{p.nama}</MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField label="Materi" fullWidth margin="dense" multiline rows={3}
             {...register('materi')} />
           <TextField label="Status" fullWidth margin="dense" select

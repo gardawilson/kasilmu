@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
 import type { Pertemuan, Presensi, ApiResponse } from '../../types'
 
-export function usePertemuan(params: { kelas_id?: string; page?: number; per_page?: number }) {
+export function usePertemuan(params: { kelas_id?: string; tgl?: string; page?: number; per_page?: number }) {
   return useQuery({
     queryKey: ['pertemuan', params],
     queryFn: async () => {
@@ -26,7 +26,7 @@ export function usePertemuanDetail(id: number) {
 export function useMulaiPertemuan() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (kelas_id: number) => api.post<ApiResponse<Pertemuan>>('/pertemuan/mulai', { kelas_id }),
+    mutationFn: (data: { kelas_id: number; tgl?: string }) => api.post<ApiResponse<Pertemuan>>('/pertemuan/mulai', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pertemuan'] }),
   })
 }
@@ -69,7 +69,7 @@ export function usePresensi(pertemuanId: number) {
 export function useStorePresensi(pertemuanId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (presensi: { siswa_id: number; status: string; keterangan?: string }[]) =>
+    mutationFn: (presensi: { siswa_id: number; status: string; keterangan?: string; catatan?: string }[]) =>
       api.post(`/pertemuan/${pertemuanId}/presensi`, { presensi }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['presensi'] }),
   })

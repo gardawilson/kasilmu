@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pertemuan extends Model
 {
-    protected $fillable = ['kelas_id', 'pertemuan_ke', 'tgl', 'materi', 'status'];
+    protected $fillable = ['kelas_id', 'tutor_id', 'pertemuan_ke', 'tgl', 'materi', 'status'];
 
     public function kelas(): BelongsTo
     {
         return $this->belongsTo(Kela::class, 'kelas_id');
+    }
+
+    public function tutor(): BelongsTo
+    {
+        return $this->belongsTo(Tutor::class);
     }
 
     public function presensis(): HasMany

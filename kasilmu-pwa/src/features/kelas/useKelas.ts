@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
 import type { Kelas, ApiResponse } from '../../types'
 
-export function useKelas(params: { search?: string; status?: string; page?: number; per_page?: number }) {
+export function useKelas(params: { search?: string; status?: string; tutor_id?: number; page?: number; per_page?: number }) {
   return useQuery({
     queryKey: ['kelas', params],
     queryFn: async () => {

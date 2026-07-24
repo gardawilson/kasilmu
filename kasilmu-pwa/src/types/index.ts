@@ -76,11 +76,13 @@ export interface Jadwal {
 export interface Pertemuan {
   id: number
   kelas_id: number
+  tutor_id: number | null
   pertemuan_ke: number
   tgl: string
   materi: string | null
   status: 'terlaksana' | 'libur'
   kelas?: Kelas
+  tutor?: Pengajar
   presensis?: Presensi[]
 }
 
@@ -88,8 +90,9 @@ export interface Presensi {
   id: number
   pertemuan_id: number
   siswa_id: number
-  status: 'hadir' | 'izin' | 'sakit' | 'alpha'
+  status: 'hadir' | 'tidak_hadir'
   keterangan: string | null
+  catatan: string | null
   siswa?: Siswa
 }
 

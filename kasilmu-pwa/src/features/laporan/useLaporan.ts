@@ -37,9 +37,7 @@ export interface LaporanKehadiran {
   siswa_id: number
   total_pertemuan: number
   hadir: number
-  izin: number
-  sakit: number
-  alpha: number
+  tidak_hadir: number
   siswa: { id: number; nama: string; nis: string }
 }
 

@@ -23,6 +23,10 @@ class KelasController
             $query->where('status', $status);
         }
 
+        if ($tutor_id = $request->tutor_id) {
+            $query->where('tutor_id', $tutor_id);
+        }
+
         return $this->paginated($query->latest()->paginate($request->per_page ?? 10));
     }
 

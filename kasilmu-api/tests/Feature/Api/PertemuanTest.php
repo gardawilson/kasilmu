@@ -75,15 +75,38 @@ class PertemuanTest extends TestCase
         $this->assertDatabaseCount('pertemuans', 1);
     }
 
-    public function test_tutor_lain_tidak_bisa_mulai_kelas_orang_lain()
+    public function test_tutor_lain_bisa_mulai_kelas_yang_bukan_miliknya_dan_tercatat_sebagai_pengajar()
     {
         $tutorUser = $this->tutorUser();
         $kela = $this->kelaWithTutor($tutorUser);
 
         $tutorLain = User::create(['name' => 'Tutor Lain', 'email' => 'lain@kasilmu.com', 'password' => bcrypt('password'), 'is_active' => true]);
         $tutorLain->assignRole('tutor');
+        $penggantiId = Tutor::create(['user_id' => $tutorLain->id, 'nip' => 'T002', 'nama' => 'Tutor Lain', 'bidang_ajar' => 'Matematika'])->id;
 
         $response = $this->actingAs($tutorLain)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+
+        $response->assertStatus(200)->assertJsonPath('data.tutor_id', $penggantiId);
+    }
+
+    public function test_tutor_lain_tidak_bisa_mengisi_presensi_pertemuan_yang_ditugaskan_ke_tutor_lain()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $siswa = $this->siswaDiKelas($kela);
+
+        $mulai = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+        $pertemuanId = $mulai->json('data.id');
+
+        $tutorLain = User::create(['name' => 'Tutor Lain', 'email' => 'lain@kasilmu.com', 'password' => bcrypt('password'), 'is_active' => true]);
+        $tutorLain->assignRole('tutor');
+        Tutor::create(['user_id' => $tutorLain->id, 'nip' => 'T002', 'nama' => 'Tutor Lain', 'bidang_ajar' => 'Matematika']);
+
+        $response = $this->actingAs($tutorLain)->postJson("/api/pertemuan/{$pertemuanId}/presensi", [
+            'presensi' => [
+                ['siswa_id' => $siswa->id, 'status' => 'hadir'],
+            ],
+        ]);
 
         $response->assertStatus(403);
     }
@@ -97,6 +120,29 @@ class PertemuanTest extends TestCase
         $response = $this->actingAs($this->admin())->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
 
         $response->assertStatus(200);
+    }
+
+    public function test_storepresensi_menyimpan_catatan_performa_per_siswa()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $siswa = $this->siswaDiKelas($kela);
+
+        $mulai = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+        $pertemuanId = $mulai->json('data.id');
+
+        $response = $this->actingAs($tutorUser)->postJson("/api/pertemuan/{$pertemuanId}/presensi", [
+            'presensi' => [
+                ['siswa_id' => $siswa->id, 'status' => 'hadir', 'catatan' => 'Sudah paham perkalian, perlu latihan soal cerita'],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('presensis', [
+            'pertemuan_id' => $pertemuanId,
+            'siswa_id'     => $siswa->id,
+            'catatan'      => 'Sudah paham perkalian, perlu latihan soal cerita',
+        ]);
     }
 
     public function test_jadwal_hari_ini_scoped_ke_tutor()

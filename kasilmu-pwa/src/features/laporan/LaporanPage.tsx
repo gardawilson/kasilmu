@@ -217,9 +217,7 @@ function LaporanKehadiranTab() {
               <TableCell>Siswa</TableCell>
               <TableCell align="center">Total</TableCell>
               <TableCell align="center" sx={{ color: '#15803d' }}>Hadir</TableCell>
-              <TableCell align="center" sx={{ color: '#1d4ed8' }}>Izin</TableCell>
-              <TableCell align="center" sx={{ color: '#b45309' }}>Sakit</TableCell>
-              <TableCell align="center" sx={{ color: '#dc2626' }}>Alpha</TableCell>
+              <TableCell align="center" sx={{ color: '#dc2626' }}>Tidak Hadir</TableCell>
               <TableCell align="center">% Hadir</TableCell>
             </TableRow>
           </TableHead>
@@ -227,14 +225,14 @@ function LaporanKehadiranTab() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(7)].map((_, j) => (
+                  {[...Array(5)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={18} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6, color: '#94a3b8' }}>Tidak ada data</TableCell>
+                <TableCell colSpan={5} align="center" sx={{ py: 6, color: '#94a3b8' }}>Tidak ada data</TableCell>
               </TableRow>
             ) : (
               data.data.map((k) => {
@@ -256,9 +254,7 @@ function LaporanKehadiranTab() {
                     </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 600 }}>{k.total_pertemuan}</TableCell>
                     <TableCell align="center" sx={{ color: '#15803d', fontWeight: 600 }}>{k.hadir}</TableCell>
-                    <TableCell align="center" sx={{ color: '#1d4ed8', fontWeight: 600 }}>{k.izin}</TableCell>
-                    <TableCell align="center" sx={{ color: '#b45309', fontWeight: 600 }}>{k.sakit}</TableCell>
-                    <TableCell align="center" sx={{ color: '#dc2626', fontWeight: 600 }}>{k.alpha}</TableCell>
+                    <TableCell align="center" sx={{ color: '#dc2626', fontWeight: 600 }}>{k.tidak_hadir}</TableCell>
                     <TableCell align="center">
                       <Chip label={`${persen}%`} size="small" sx={{
                         fontWeight: 700,
