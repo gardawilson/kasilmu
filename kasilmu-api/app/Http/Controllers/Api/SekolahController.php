@@ -34,7 +34,7 @@ class SekolahController
     public function update(Request $request, Sekolah $sekolah)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:sekolahs,nama,' . $sekolah->id,
+            'nama' => 'required|string|max:255|unique:sekolahs,nama,'.$sekolah->id,
         ]);
 
         $sekolah->update($validated);

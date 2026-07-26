@@ -6,7 +6,6 @@ import SiswaPage from './features/siswa/SiswaPage'
 import PengajarPage from './features/pengajar/PengajarPage'
 import KelasPage from './features/kelas/KelasPage'
 import SekolahPage from './features/sekolah/SekolahPage'
-import JadwalPage from './features/jadwal/JadwalPage'
 import PertemuanPage from './features/pertemuan/PertemuanPage'
 import PembayaranPage from './features/pembayaran/PembayaranPage'
 import NilaiPage from './features/nilai/NilaiPage'
@@ -35,7 +34,6 @@ export default function App() {
       <Route path="/pengajar" element={<ProtectedRoute><PengajarPage /></ProtectedRoute>} />
       <Route path="/kelas" element={<ProtectedRoute><KelasPage /></ProtectedRoute>} />
       <Route path="/sekolah" element={<ProtectedRoute><SekolahPage /></ProtectedRoute>} />
-      <Route path="/jadwal" element={<ProtectedRoute><JadwalPage /></ProtectedRoute>} />
       <Route path="/presensi" element={<ProtectedRoute><PertemuanPage /></ProtectedRoute>} />
       <Route path="/pembayaran" element={<ProtectedRoute><PembayaranPage /></ProtectedRoute>} />
       <Route path="/nilai" element={<ProtectedRoute><NilaiPage /></ProtectedRoute>} />

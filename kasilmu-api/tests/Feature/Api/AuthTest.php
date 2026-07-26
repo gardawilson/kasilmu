@@ -3,6 +3,8 @@
 namespace Tests\Feature\Api;
 
 use App\Models\User;
+use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,14 +15,14 @@ class AuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(AdminUserSeeder::class);
     }
 
     public function test_login_success()
     {
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'admin@kasilmu.com',
+            'email' => 'admin@kasilmu.com',
             'password' => 'password',
         ]);
 
@@ -31,7 +33,7 @@ class AuthTest extends TestCase
     public function test_login_invalid()
     {
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'wrong@email.com',
+            'email' => 'wrong@email.com',
             'password' => 'wrongpassword',
         ]);
 

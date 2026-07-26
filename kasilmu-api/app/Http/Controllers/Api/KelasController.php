@@ -33,15 +33,15 @@ class KelasController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'           => 'required|string|max:255',
+            'nama' => 'required|string|max:255',
             'mata_pelajaran' => 'required|string|max:255',
-            'deskripsi'      => 'nullable|string',
-            'durasi_bulan'   => 'required|integer|min:1',
-            'tutor_id'       => 'required|exists:tutors,id',
-            'harga'          => 'required|numeric|min:0',
-            'kapasitas'      => 'required|integer|min:1',
-            'ruang'          => 'nullable|string|max:50',
-            'status'         => 'nullable|in:aktif,selesai',
+            'deskripsi' => 'nullable|string',
+            'durasi_bulan' => 'required|integer|min:1',
+            'tutor_id' => 'required|exists:tutors,id',
+            'harga' => 'required|numeric|min:0',
+            'kapasitas' => 'required|integer|min:1',
+            'ruang' => 'nullable|string|max:50',
+            'status' => 'nullable|in:aktif,selesai',
         ]);
 
         $kelas = Kela::create($validated);
@@ -60,15 +60,15 @@ class KelasController
     public function update(Request $request, Kela $kela)
     {
         $validated = $request->validate([
-            'nama'           => 'required|string|max:255',
+            'nama' => 'required|string|max:255',
             'mata_pelajaran' => 'required|string|max:255',
-            'deskripsi'      => 'nullable|string',
-            'durasi_bulan'   => 'required|integer|min:1',
-            'tutor_id'       => 'required|exists:tutors,id',
-            'harga'          => 'required|numeric|min:0',
-            'kapasitas'      => 'required|integer|min:1',
-            'ruang'          => 'nullable|string|max:50',
-            'status'         => 'nullable|in:aktif,selesai',
+            'deskripsi' => 'nullable|string',
+            'durasi_bulan' => 'required|integer|min:1',
+            'tutor_id' => 'required|exists:tutors,id',
+            'harga' => 'required|numeric|min:0',
+            'kapasitas' => 'required|integer|min:1',
+            'ruang' => 'nullable|string|max:50',
+            'status' => 'nullable|in:aktif,selesai',
         ]);
 
         $kela->update($validated);
@@ -101,7 +101,7 @@ class KelasController
 
         $kela->siswa()->attach($validated['siswa_id'], [
             'tgl_masuk' => now()->toDateString(),
-            'status'    => 'aktif',
+            'status' => 'aktif',
         ]);
 
         return $this->success(null, 'Siswa berhasil ditambahkan ke kelas');

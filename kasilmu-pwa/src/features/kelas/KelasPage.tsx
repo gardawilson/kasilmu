@@ -4,10 +4,11 @@ import {
   Button, TextField, IconButton, TablePagination, Chip, MenuItem,
   Tooltip, Skeleton,
 } from '@mui/material'
-import { Add, Edit, Delete, Search, People, Inbox } from '@mui/icons-material'
+import { Add, Edit, Delete, Search, People, Inbox, Assignment } from '@mui/icons-material'
 import { useKelas, useDeleteKelas } from './useKelas'
 import KelasForm from './KelasForm'
 import KelasSiswaDialog from './KelasSiswaDialog'
+import SiswaPaketDialog from '../paket/SiswaPaketDialog'
 import DeleteDialog from '../../components/ui/DeleteDialog'
 import type { Kelas } from '../../types'
 
@@ -20,6 +21,7 @@ export default function KelasPage() {
   const [editData, setEditData] = useState<Kelas | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [siswaDialog, setSiswaDialog] = useState<number | null>(null)
+  const [paketDialog, setPaketDialog] = useState<number | null>(null)
 
   const { data, isLoading } = useKelas({ search, status, page, per_page: perPage })
   const del = useDeleteKelas()
@@ -106,6 +108,12 @@ export default function KelasPage() {
                     }} />
                   </TableCell>
                   <TableCell align="right" sx={{ pr: 1 }}>
+                    <Tooltip title="Atur Paket">
+                      <IconButton size="small" onClick={() => setPaketDialog(kelas.id)}
+                        sx={{ color: '#94a3b8', '&:hover': { color: '#8b5cf6', bgcolor: '#8b5cf60f' } }}>
+                        <Assignment fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Atur Siswa">
                       <IconButton size="small" onClick={() => setSiswaDialog(kelas.id)}
                         sx={{ color: '#94a3b8', '&:hover': { color: '#0d9488', bgcolor: '#0d94880f' } }}>
@@ -141,10 +149,11 @@ export default function KelasPage() {
 
       {open && <KelasForm open={open} onClose={() => { setOpen(false); setEditData(null) }} editData={editData} />}
       {!!siswaDialog && <KelasSiswaDialog open={!!siswaDialog} onClose={() => setSiswaDialog(null)} kelasId={siswaDialog} />}
+      {!!paketDialog && <SiswaPaketDialog open={!!paketDialog} onClose={() => setPaketDialog(null)} kelasId={paketDialog} />}
 
       <DeleteDialog
         open={!!deleteId} title="Hapus Kelas"
-        description="Kelas ini akan dihapus permanen beserta semua jadwal dan pertemuannya. Lanjutkan?"
+        description="Kelas ini akan dihapus permanen beserta semua pertemuannya. Lanjutkan?"
         loading={del.isPending}
         onClose={() => setDeleteId(null)}
         onConfirm={async () => { await del.mutateAsync(deleteId!); setDeleteId(null) }}

@@ -3,15 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Siswa extends Model
 {
     protected $fillable = [
         'nis', 'nama', 'email', 'no_telp', 'tgl_lahir', 'alamat',
-        'sekolah_id', 'kelas_asal', 'tingkat', 'jenjang', 'nama_ortu', 'no_telp_ortu', 'foto', 'status'
+        'sekolah_id', 'kelas_asal', 'tingkat', 'jenjang', 'nama_ortu', 'no_telp_ortu', 'foto', 'status',
     ];
 
     public function sekolah(): BelongsTo
@@ -34,5 +34,10 @@ class Siswa extends Model
     public function nilais(): HasMany
     {
         return $this->hasMany(Nilai::class);
+    }
+
+    public function siswaPakets(): HasMany
+    {
+        return $this->hasMany(SiswaPaket::class);
     }
 }

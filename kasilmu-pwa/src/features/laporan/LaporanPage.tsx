@@ -7,6 +7,7 @@ import {
   useLaporanKeuangan, useLaporanSiswa, useLaporanKehadiran,
 } from './useLaporan'
 import { useSiswa } from '../siswa/useSiswa'
+import { useKelas } from '../kelas/useKelas'
 
 function TabPanel({ value, index, children }: { value: number; index: number; children: React.ReactNode }) {
   return value === index ? <Box>{children}</Box> : null
@@ -194,20 +195,43 @@ function LaporanSiswaTab() {
 
 function LaporanKehadiranTab() {
   const [siswaFilter, setSiswaFilter] = useState('')
+  const [kelasFilter, setKelasFilter] = useState('')
+  const [tglMulai, setTglMulai] = useState('')
+  const [tglSelesai, setTglSelesai] = useState('')
   const [page, setPage] = useState(1)
   const { data: siswa } = useSiswa({ per_page: 100 })
-  const { data, isLoading } = useLaporanKehadiran({ siswa_id: siswaFilter || undefined, page, per_page: 20 })
+  const { data: kelas } = useKelas({ per_page: 100 })
+  const { data, isLoading } = useLaporanKehadiran({
+    siswa_id: siswaFilter || undefined,
+    kelas_id: kelasFilter || undefined,
+    tgl_mulai: tglMulai || undefined,
+    tgl_selesai: tglSelesai || undefined,
+    page, per_page: 20,
+  })
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <TextField select label="Filter Siswa" value={siswaFilter}
-          onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }} sx={{ minWidth: 220 }}>
+          onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }} sx={{ minWidth: 200 }}>
           <MenuItem value="">Semua Siswa</MenuItem>
           {siswa?.data?.map((s) => (
             <MenuItem key={s.id} value={s.id}>{s.nama}</MenuItem>
           ))}
         </TextField>
+        <TextField select label="Filter Kelas" value={kelasFilter}
+          onChange={(e) => { setKelasFilter(e.target.value); setPage(1) }} sx={{ minWidth: 200 }}>
+          <MenuItem value="">Semua Kelas</MenuItem>
+          {kelas?.data?.map((k) => (
+            <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
+          ))}
+        </TextField>
+        <TextField label="Dari Tgl" type="date" value={tglMulai}
+          onChange={(e) => { setTglMulai(e.target.value); setPage(1) }}
+          slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 160 }} />
+        <TextField label="Sampai Tgl" type="date" value={tglSelesai}
+          onChange={(e) => { setTglSelesai(e.target.value); setPage(1) }}
+          slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 160 }} />
       </Box>
 
       <Paper sx={{ overflow: 'hidden' }}>
@@ -219,20 +243,22 @@ function LaporanKehadiranTab() {
               <TableCell align="center" sx={{ color: '#15803d' }}>Hadir</TableCell>
               <TableCell align="center" sx={{ color: '#dc2626' }}>Tidak Hadir</TableCell>
               <TableCell align="center">% Hadir</TableCell>
+              <TableCell align="center">Paket</TableCell>
+              <TableCell align="center">Sisa</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(5)].map((_, j) => (
+                  {[...Array(7)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={18} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6, color: '#94a3b8' }}>Tidak ada data</TableCell>
+                <TableCell colSpan={7} align="center" sx={{ py: 6, color: '#94a3b8' }}>Tidak ada data</TableCell>
               </TableRow>
             ) : (
               data.data.map((k) => {
@@ -264,6 +290,28 @@ function LaporanKehadiranTab() {
                           ? { bgcolor: '#fef3c7', color: '#b45309' }
                           : { bgcolor: '#fee2e2', color: '#dc2626' }),
                       }} />
+                    </TableCell>
+                    <TableCell align="center">
+                      {k.paket ? (
+                        <Chip label={k.paket} size="small"
+                          sx={{ bgcolor: '#ede9fe', color: '#6d28d9', fontWeight: 600 }} />
+                      ) : (
+                        <Typography variant="caption" sx={{ color: '#94a3b8' }}>—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      {k.kuota !== undefined ? (
+                        <Chip label={`${k.sisa ?? 0}/${k.kuota}`} size="small" sx={{
+                          fontWeight: 700,
+                          ...((k.sisa ?? 0) <= 0
+                            ? { bgcolor: '#fee2e2', color: '#dc2626' }
+                            : (k.sisa ?? 0) <= 2
+                            ? { bgcolor: '#fef3c7', color: '#b45309' }
+                            : { bgcolor: '#dcfce7', color: '#15803d' }),
+                        }} />
+                      ) : (
+                        <Typography variant="caption" sx={{ color: '#94a3b8' }}>—</Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 )

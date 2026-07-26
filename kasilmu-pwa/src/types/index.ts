@@ -63,16 +63,6 @@ export interface Kelas {
   pertemuans_count?: number
 }
 
-export interface Jadwal {
-  id: number
-  kelas_id: number
-  hari: string
-  jam_mulai: string
-  jam_selesai: string
-  ruang: string | null
-  kelas?: Kelas
-}
-
 export interface Pertemuan {
   id: number
   kelas_id: number
@@ -94,6 +84,8 @@ export interface Presensi {
   keterangan: string | null
   catatan: string | null
   siswa?: Siswa
+  sisa_pertemuan?: number
+  kuota?: number
 }
 
 export interface Tagihan {
@@ -126,6 +118,28 @@ export interface Nilai {
   keterangan: string | null
   siswa?: Siswa
   kelas?: Kelas
+}
+
+export interface Paket {
+  id: number
+  nama: string
+  jumlah_pertemuan: number
+  deskripsi: string | null
+}
+
+export interface SiswaPaket {
+  id: number
+  siswa_id: number
+  kelas_id: number
+  paket_id: number
+  tgl_mulai: string
+  tgl_selesai: string
+  status: 'aktif' | 'selesai'
+  siswa?: Siswa
+  kelas?: Kelas
+  paket?: Paket
+  sisa_pertemuan?: number
+  hadir_count?: number
 }
 
 export interface ApiResponse<T> {

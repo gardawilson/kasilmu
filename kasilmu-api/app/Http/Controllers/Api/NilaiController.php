@@ -31,11 +31,11 @@ class NilaiController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'siswa_id'    => 'required|exists:siswas,id',
-            'kelas_id'    => 'required|exists:kelas,id',
+            'siswa_id' => 'required|exists:siswas,id',
+            'kelas_id' => 'required|exists:kelas,id',
             'jenis_nilai' => 'required|in:tugas,uts,uas',
-            'nilai'       => 'required|numeric|min:0|max:100',
-            'keterangan'  => 'nullable|string',
+            'nilai' => 'required|numeric|min:0|max:100',
+            'keterangan' => 'nullable|string',
         ]);
 
         $nilai = Nilai::create($validated);
@@ -53,11 +53,11 @@ class NilaiController
     public function update(Request $request, Nilai $nilai)
     {
         $validated = $request->validate([
-            'siswa_id'    => 'required|exists:siswas,id',
-            'kelas_id'    => 'required|exists:kelas,id',
+            'siswa_id' => 'required|exists:siswas,id',
+            'kelas_id' => 'required|exists:kelas,id',
             'jenis_nilai' => 'required|in:tugas,uts,uas',
-            'nilai'       => 'required|numeric|min:0|max:100',
-            'keterangan'  => 'nullable|string',
+            'nilai' => 'required|numeric|min:0|max:100',
+            'keterangan' => 'nullable|string',
         ]);
 
         $nilai->update($validated);

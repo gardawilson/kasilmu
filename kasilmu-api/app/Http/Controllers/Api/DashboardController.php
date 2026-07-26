@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Siswa;
-use App\Models\Tutor;
 use App\Models\Kela;
 use App\Models\Pembayaran;
-use App\Models\Presensi;
-use Illuminate\Http\Request;
+use App\Models\Siswa;
+use App\Models\Tutor;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController
@@ -38,12 +36,12 @@ class DashboardController
             ->get();
 
         return $this->success([
-            'total_siswa'          => $totalSiswa,
-            'total_siswa_aktif'    => $totalSiswaAktif,
-            'total_tutor'          => $totalTutor,
-            'total_kelas_aktif'    => $totalKelas,
+            'total_siswa' => $totalSiswa,
+            'total_siswa_aktif' => $totalSiswaAktif,
+            'total_tutor' => $totalTutor,
+            'total_kelas_aktif' => $totalKelas,
             'pendapatan_bulan_ini' => $pendapatanBulanIni,
-            'pendapatan_hari_ini'  => $pendapatanHariIni,
+            'pendapatan_hari_ini' => $pendapatanHariIni,
             'pendapatan_per_bulan' => $pendapatanPerBulan,
         ]);
     }

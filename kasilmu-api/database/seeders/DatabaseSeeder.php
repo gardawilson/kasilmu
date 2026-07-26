@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
             TutorSeeder::class,
             SiswaSeeder::class,
             KelasSeeder::class,
-            JadwalSeeder::class,
+            PaketSeeder::class,
         ]);
     }
 }

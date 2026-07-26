@@ -29,6 +29,15 @@ Two independently versioned apps (each has its own `.git`) in one working tree, 
 - Requires `VITE_API_URL` in `.env` pointing at backend (e.g. `http://localhost:8000/api`).
 - No role-based route gating on frontend; enforcement is backend-only via `role:` middleware.
 
+### Paket & Kuota Presensi (added 2026-07-26)
+
+- **Table `pakets`**: master data paket (12/16/20 pertemuan per bulan). Seeded by `PaketSeeder`.
+- **Table `siswa_pakets`**: subscription per siswa per kelas. `status: aktif|selesai`, `tgl_mulai`/`tgl_selesai` (±1 month). Sisa pertemuan dihitung **dinamis** via `SiswaPaket::$sisa_pertemuan` (count `hadir` in date range, no stored column).
+- **CRUD**: `SiswaPaketController` — admin-only. `POST /api/siswa/{siswa}/paket` to assign, auto-creates first `Tagihan` + closes any prior active paket.
+- **Presensi enrichment**: `PertemuanController::show/mulai/presensi` now attach `sisa_pertemuan` & `kuota` per presensi record by looking up the student's active `SiswaPaket`.
+- **Auto-billing**: `php artisan tagihan:generate` (daily via scheduler in `routes/console.php`) — finds expired `siswa_pakets`, creates new Tagihan SPP + new SiswaPaket period.
+- **Frontend**: `src/features/paket/` — `SiswaPaketDialog.tsx` opened from KelasPage (icon <Assignment />). `PresensiDialog` shows sisa kuota chip (green/yellow/red). `LaporanPage` Kehadiran tab - filter kelas+tgl, columns Paket+Sisa.
+
 ### Naming drift (intentional)
 
 | Frontend path/feature | Backend endpoint |

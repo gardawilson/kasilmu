@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\NilaiController;
@@ -10,8 +9,11 @@ use App\Http\Controllers\Api\PembayaranController;
 use App\Http\Controllers\Api\PertemuanController;
 use App\Http\Controllers\Api\SekolahController;
 use App\Http\Controllers\Api\SiswaController;
+use App\Http\Controllers\Api\SiswaPaketController;
 use App\Http\Controllers\Api\TagihanController;
 use App\Http\Controllers\Api\TutorController;
+use App\Models\Paket;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -43,13 +45,28 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('laporan/siswa', [LaporanController::class, 'siswa']);
         Route::get('laporan/kehadiran', [LaporanController::class, 'kehadiran']);
         Route::get('dashboard', [DashboardController::class, 'index']);
+        Route::get('paket', function (Request $request) {
+            $paginator = Paket::query()->paginate($request->per_page ?? 20);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil',
+                'data' => $paginator->items(),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+            ]);
+        });
+        Route::post('siswa/{siswa}/paket', [SiswaPaketController::class, 'store']);
+        Route::get('siswa/{siswa}/paket', [SiswaPaketController::class, 'aktif']);
+        Route::put('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'update']);
+        Route::delete('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'destroy']);
     });
 
     Route::middleware('role:admin|tutor')->group(function () {
-        Route::get('jadwal/hari-ini', [JadwalController::class, 'hariIni']);
-        Route::post('jadwal', [JadwalController::class, 'store']);
-        Route::put('jadwal/{jadwal}', [JadwalController::class, 'update']);
-        Route::delete('jadwal/{jadwal}', [JadwalController::class, 'destroy']);
         Route::post('pertemuan/mulai', [PertemuanController::class, 'mulai']);
         Route::post('pertemuan', [PertemuanController::class, 'store']);
         Route::put('pertemuan/{pertemuan}', [PertemuanController::class, 'update']);
@@ -61,12 +78,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:admin|tutor|siswa|orang_tua')->group(function () {
+        Route::get('siswa-paket', [SiswaPaketController::class, 'index']);
         Route::get('kelas', [KelasController::class, 'index']);
         Route::get('kelas/{kela}', [KelasController::class, 'show']);
-        Route::get('kelas/{kela}/jadwal', [JadwalController::class, 'byKelas']);
         Route::get('kelas/{kela}/pertemuan', [PertemuanController::class, 'byKelas']);
-        Route::get('jadwal', [JadwalController::class, 'index']);
-        Route::get('jadwal/{jadwal}', [JadwalController::class, 'show']);
         Route::get('pertemuan', [PertemuanController::class, 'index']);
         Route::get('pertemuan/{pertemuan}', [PertemuanController::class, 'show']);
         Route::get('pertemuan/{pertemuan}/presensi', [PertemuanController::class, 'presensi']);

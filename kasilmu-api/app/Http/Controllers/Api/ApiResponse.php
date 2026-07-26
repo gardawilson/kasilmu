@@ -11,7 +11,7 @@ trait ApiResponse
         $response = [
             'success' => true,
             'message' => $message,
-            'data'    => $data,
+            'data' => $data,
         ];
 
         if ($meta) {
@@ -43,9 +43,9 @@ trait ApiResponse
             200,
             [
                 'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ]
         );
     }

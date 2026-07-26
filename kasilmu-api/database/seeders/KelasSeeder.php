@@ -29,7 +29,7 @@ class KelasSeeder extends Seeder
             foreach ($siswaSejenjang->take($kela->kapasitas) as $siswa) {
                 $kela->siswa()->attach($siswa->id, [
                     'tgl_masuk' => now()->toDateString(),
-                    'status'    => 'aktif',
+                    'status' => 'aktif',
                 ]);
             }
         }

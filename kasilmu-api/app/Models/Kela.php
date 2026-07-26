@@ -11,7 +11,7 @@ class Kela extends Model
 {
     protected $fillable = [
         'nama', 'mata_pelajaran', 'deskripsi', 'durasi_bulan', 'tutor_id', 'harga',
-        'kapasitas', 'ruang', 'status'
+        'kapasitas', 'ruang', 'status',
     ];
 
     public function tutor(): BelongsTo
@@ -24,11 +24,6 @@ class Kela extends Model
         return $this->belongsToMany(Siswa::class, 'kelas_siswa', 'kelas_id', 'siswa_id')
             ->withPivot(['tgl_masuk', 'tgl_keluar', 'status'])
             ->withTimestamps();
-    }
-
-    public function jadwals(): HasMany
-    {
-        return $this->hasMany(Jadwal::class, 'kelas_id');
     }
 
     public function pertemuans(): HasMany

@@ -19,8 +19,8 @@ class SiswaController
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nis', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('nis', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -34,29 +34,29 @@ class SiswaController
     private function generateNis(): string
     {
         $year = now()->format('Y');
-        $last = Siswa::where('nis', 'like', $year . '%')->orderByDesc('nis')->value('nis');
+        $last = Siswa::where('nis', 'like', $year.'%')->orderByDesc('nis')->value('nis');
         $next = $last ? ((int) substr($last, 4)) + 1 : 1;
 
-        return $year . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+        return $year.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'         => 'required|string|max:255',
-            'email'        => 'nullable|email|max:255',
-            'no_telp'      => 'nullable|string|max:20',
-            'tgl_lahir'    => 'required|date',
-            'alamat'       => 'nullable|string',
-            'sekolah_id'   => 'nullable|exists:sekolahs,id',
-            'kelas_asal'   => 'nullable|string|max:50',
-            'tingkat'      => 'required|integer|between:1,12',
-            'jenjang'      => 'required|in:SD,SMP,SMA',
-            'nama_ortu'    => 'nullable|string|max:255',
+            'nama' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'no_telp' => 'nullable|string|max:20',
+            'tgl_lahir' => 'required|date',
+            'alamat' => 'nullable|string',
+            'sekolah_id' => 'nullable|exists:sekolahs,id',
+            'kelas_asal' => 'nullable|string|max:50',
+            'tingkat' => 'required|integer|between:1,12',
+            'jenjang' => 'required|in:SD,SMP,SMA',
+            'nama_ortu' => 'nullable|string|max:255',
             'no_telp_ortu' => 'nullable|string|max:20',
-            'foto'         => 'nullable|string|max:255',
-            'status'       => 'nullable|in:aktif,nonaktif,lulus',
-            'kelas_id'     => 'required|exists:kelas,id',
+            'foto' => 'nullable|string|max:255',
+            'status' => 'nullable|in:aktif,nonaktif,lulus',
+            'kelas_id' => 'required|exists:kelas,id',
         ]);
 
         $kelasId = $validated['kelas_id'];
@@ -75,7 +75,7 @@ class SiswaController
 
                 $kela->siswa()->attach($siswa->id, [
                     'tgl_masuk' => now()->toDateString(),
-                    'status'    => 'aktif',
+                    'status' => 'aktif',
                 ]);
 
                 return $siswa;
@@ -97,19 +97,19 @@ class SiswaController
     public function update(Request $request, Siswa $siswa)
     {
         $validated = $request->validate([
-            'nama'         => 'required|string|max:255',
-            'email'        => 'nullable|email|max:255',
-            'no_telp'      => 'nullable|string|max:20',
-            'tgl_lahir'    => 'required|date',
-            'alamat'       => 'nullable|string',
-            'sekolah_id'   => 'nullable|exists:sekolahs,id',
-            'kelas_asal'   => 'nullable|string|max:50',
-            'tingkat'      => 'required|integer|between:1,12',
-            'jenjang'      => 'required|in:SD,SMP,SMA',
-            'nama_ortu'    => 'nullable|string|max:255',
+            'nama' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'no_telp' => 'nullable|string|max:20',
+            'tgl_lahir' => 'required|date',
+            'alamat' => 'nullable|string',
+            'sekolah_id' => 'nullable|exists:sekolahs,id',
+            'kelas_asal' => 'nullable|string|max:50',
+            'tingkat' => 'required|integer|between:1,12',
+            'jenjang' => 'required|in:SD,SMP,SMA',
+            'nama_ortu' => 'nullable|string|max:255',
             'no_telp_ortu' => 'nullable|string|max:20',
-            'foto'         => 'nullable|string|max:255',
-            'status'       => 'nullable|in:aktif,nonaktif,lulus',
+            'foto' => 'nullable|string|max:255',
+            'status' => 'nullable|in:aktif,nonaktif,lulus',
         ]);
 
         $siswa->update($validated);

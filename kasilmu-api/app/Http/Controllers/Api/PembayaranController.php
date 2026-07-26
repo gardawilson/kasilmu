@@ -24,9 +24,9 @@ class PembayaranController
     {
         $validated = $request->validate([
             'tagihan_id' => 'required|exists:tagihans,id',
-            'jumlah'     => 'required|numeric|min:0',
-            'metode'     => 'required|in:tunai,transfer',
-            'tgl_bayar'  => 'required|date',
+            'jumlah' => 'required|numeric|min:0',
+            'metode' => 'required|in:tunai,transfer',
+            'tgl_bayar' => 'required|date',
             'keterangan' => 'nullable|string',
         ]);
 

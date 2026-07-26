@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Kela;
 use App\Models\Pertemuan;
 use App\Models\Presensi;
-use App\Models\Kela;
+use App\Models\SiswaPaket;
 use Illuminate\Http\Request;
 
 class PertemuanController
@@ -28,7 +29,7 @@ class PertemuanController
     {
         $validated = $request->validate([
             'kelas_id' => 'required|exists:kelas,id',
-            'tgl'      => 'nullable|date',
+            'tgl' => 'nullable|date',
         ]);
 
         $kela = Kela::findOrFail($validated['kelas_id']);
@@ -38,8 +39,8 @@ class PertemuanController
             ['kelas_id' => $kela->id, 'tgl' => $tgl],
             [
                 'pertemuan_ke' => (Pertemuan::where('kelas_id', $kela->id)->max('pertemuan_ke') ?? 0) + 1,
-                'status'       => 'terlaksana',
-                'tutor_id'     => $request->user()->tutor?->id,
+                'status' => 'terlaksana',
+                'tutor_id' => $request->user()->tutor?->id,
             ]
         );
 
@@ -53,6 +54,17 @@ class PertemuanController
         }
 
         $pertemuan->load(['kelas:id,nama', 'tutor:id,nama', 'presensis.siswa:id,nama,nis']);
+
+        $pertemuan->presensis->each(function ($presensi) use ($pertemuan) {
+            $siswaPaket = SiswaPaket::with('paket')
+                ->where('siswa_id', $presensi->siswa_id)
+                ->where('kelas_id', $pertemuan->kelas_id)
+                ->where('status', 'aktif')
+                ->first();
+
+            $presensi->sisa_pertemuan = $siswaPaket?->sisa_pertemuan;
+            $presensi->kuota = $siswaPaket?->paket?->jumlah_pertemuan;
+        });
 
         return $this->success($pertemuan, 'Sesi pertemuan siap');
     }
@@ -75,12 +87,12 @@ class PertemuanController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kelas_id'     => 'required|exists:kelas,id',
+            'kelas_id' => 'required|exists:kelas,id',
             'pertemuan_ke' => 'required|integer|min:1',
-            'tgl'          => 'required|date',
-            'materi'       => 'nullable|string',
-            'status'       => 'nullable|in:terlaksana,libur',
-            'tutor_id'     => 'nullable|exists:tutors,id',
+            'tgl' => 'required|date',
+            'materi' => 'nullable|string',
+            'status' => 'nullable|in:terlaksana,libur',
+            'tutor_id' => 'nullable|exists:tutors,id',
         ]);
 
         $validated['tutor_id'] = $request->user()->hasRole('tutor')
@@ -96,18 +108,29 @@ class PertemuanController
     {
         $pertemuan->load(['kelas:id,nama', 'tutor:id,nama', 'presensis.siswa:id,nama,nis']);
 
+        $pertemuan->presensis->each(function ($presensi) use ($pertemuan) {
+            $siswaPaket = SiswaPaket::with('paket')
+                ->where('siswa_id', $presensi->siswa_id)
+                ->where('kelas_id', $pertemuan->kelas_id)
+                ->where('status', 'aktif')
+                ->first();
+
+            $presensi->sisa_pertemuan = $siswaPaket?->sisa_pertemuan;
+            $presensi->kuota = $siswaPaket?->paket?->jumlah_pertemuan;
+        });
+
         return $this->success($pertemuan);
     }
 
     public function update(Request $request, Pertemuan $pertemuan)
     {
         $validated = $request->validate([
-            'kelas_id'     => 'required|exists:kelas,id',
+            'kelas_id' => 'required|exists:kelas,id',
             'pertemuan_ke' => 'required|integer|min:1',
-            'tgl'          => 'required|date',
-            'materi'       => 'nullable|string',
-            'status'       => 'nullable|in:terlaksana,libur',
-            'tutor_id'     => 'nullable|exists:tutors,id',
+            'tgl' => 'required|date',
+            'materi' => 'nullable|string',
+            'status' => 'nullable|in:terlaksana,libur',
+            'tutor_id' => 'nullable|exists:tutors,id',
         ]);
 
         if (! $this->isOwnPertemuan($request, $pertemuan)) {
@@ -138,17 +161,30 @@ class PertemuanController
     {
         $pertemuan->load('presensis.siswa:id,nama,nis');
 
-        return $this->success($pertemuan->presensis);
+        $result = $pertemuan->presensis->map(function ($presensi) use ($pertemuan) {
+            $siswaPaket = SiswaPaket::with('paket')
+                ->where('siswa_id', $presensi->siswa_id)
+                ->where('kelas_id', $pertemuan->kelas_id)
+                ->where('status', 'aktif')
+                ->first();
+
+            $presensi->sisa_pertemuan = $siswaPaket?->sisa_pertemuan;
+            $presensi->kuota = $siswaPaket?->paket?->jumlah_pertemuan;
+
+            return $presensi;
+        });
+
+        return $this->success($result);
     }
 
     public function storePresensi(Request $request, Pertemuan $pertemuan)
     {
         $validated = $request->validate([
-            'presensi'              => 'required|array',
-            'presensi.*.siswa_id'   => 'required|exists:siswas,id',
-            'presensi.*.status'     => 'required|in:hadir,tidak_hadir',
+            'presensi' => 'required|array',
+            'presensi.*.siswa_id' => 'required|exists:siswas,id',
+            'presensi.*.status' => 'required|in:hadir,tidak_hadir',
             'presensi.*.keterangan' => 'nullable|string',
-            'presensi.*.catatan'    => 'nullable|string',
+            'presensi.*.catatan' => 'nullable|string',
         ]);
 
         if (! $this->isOwnPertemuan($request, $pertemuan)) {
@@ -159,12 +195,12 @@ class PertemuanController
             Presensi::updateOrCreate(
                 [
                     'pertemuan_id' => $pertemuan->id,
-                    'siswa_id'     => $item['siswa_id'],
+                    'siswa_id' => $item['siswa_id'],
                 ],
                 [
-                    'status'     => $item['status'],
+                    'status' => $item['status'],
                     'keterangan' => $item['keterangan'] ?? null,
-                    'catatan'    => $item['catatan'] ?? null,
+                    'catatan' => $item['catatan'] ?? null,
                 ]
             );
         }

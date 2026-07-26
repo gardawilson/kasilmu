@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Tagihan;
-use App\Models\Pembayaran;
 use Illuminate\Http\Request;
 
 class TagihanController
@@ -29,9 +28,9 @@ class TagihanController
     {
         $validated = $request->validate([
             'siswa_id' => 'required|exists:siswas,id',
-            'jenis'    => 'required|in:daftar,spp',
-            'jumlah'   => 'required|numeric|min:0',
-            'tenggat'  => 'nullable|date',
+            'jenis' => 'required|in:daftar,spp',
+            'jumlah' => 'required|numeric|min:0',
+            'tenggat' => 'nullable|date',
         ]);
 
         $tagihan = Tagihan::create($validated);
@@ -49,10 +48,10 @@ class TagihanController
     public function update(Request $request, Tagihan $tagihan)
     {
         $validated = $request->validate([
-            'jenis'   => 'required|in:daftar,spp',
-            'jumlah'  => 'required|numeric|min:0',
+            'jenis' => 'required|in:daftar,spp',
+            'jumlah' => 'required|numeric|min:0',
             'tenggat' => 'nullable|date',
-            'status'  => 'nullable|in:pending,lunas,kadaluarsa',
+            'status' => 'nullable|in:pending,lunas,kadaluarsa',
         ]);
 
         $tagihan->update($validated);

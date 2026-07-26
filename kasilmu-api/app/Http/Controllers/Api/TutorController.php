@@ -16,8 +16,8 @@ class TutorController
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%")
-                  ->orWhere('bidang_ajar', 'like', "%{$search}%");
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhere('bidang_ajar', 'like', "%{$search}%");
             });
         }
 
@@ -27,14 +27,14 @@ class TutorController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nip'                  => 'required|string|max:20|unique:tutors,nip',
-            'nama'                 => 'required|string|max:255',
-            'email'                => 'nullable|email|max:255',
-            'no_telp'              => 'nullable|string|max:20',
-            'bidang_ajar'          => 'required|string|max:255',
-            'tarif_per_pertemuan'  => 'required|numeric|min:0',
-            'pendidikan_terakhir'  => 'nullable|string|max:100',
-            'foto'                 => 'nullable|string|max:255',
+            'nip' => 'required|string|max:20|unique:tutors,nip',
+            'nama' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'no_telp' => 'nullable|string|max:20',
+            'bidang_ajar' => 'required|string|max:255',
+            'tarif_per_pertemuan' => 'required|numeric|min:0',
+            'pendidikan_terakhir' => 'nullable|string|max:100',
+            'foto' => 'nullable|string|max:255',
         ]);
 
         $tutor = Tutor::create($validated);
@@ -52,14 +52,14 @@ class TutorController
     public function update(Request $request, Tutor $tutor)
     {
         $validated = $request->validate([
-            'nip'                  => 'required|string|max:20|unique:tutors,nip,' . $tutor->id,
-            'nama'                 => 'required|string|max:255',
-            'email'                => 'nullable|email|max:255',
-            'no_telp'              => 'nullable|string|max:20',
-            'bidang_ajar'          => 'required|string|max:255',
-            'tarif_per_pertemuan'  => 'required|numeric|min:0',
-            'pendidikan_terakhir'  => 'nullable|string|max:100',
-            'foto'                 => 'nullable|string|max:255',
+            'nip' => 'required|string|max:20|unique:tutors,nip,'.$tutor->id,
+            'nama' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'no_telp' => 'nullable|string|max:20',
+            'bidang_ajar' => 'required|string|max:255',
+            'tarif_per_pertemuan' => 'required|numeric|min:0',
+            'pendidikan_terakhir' => 'nullable|string|max:100',
+            'foto' => 'nullable|string|max:255',
         ]);
 
         $tutor->update($validated);

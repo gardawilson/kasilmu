@@ -5,12 +5,13 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
             'siswa.create',
@@ -27,11 +28,6 @@ class RolePermissionSeeder extends Seeder
             'kelas.read',
             'kelas.update',
             'kelas.delete',
-
-            'jadwal.create',
-            'jadwal.read',
-            'jadwal.update',
-            'jadwal.delete',
 
             'presensi.create',
             'presensi.read',
@@ -57,7 +53,6 @@ class RolePermissionSeeder extends Seeder
 
         $tutor = Role::create(['name' => 'tutor', 'guard_name' => 'web']);
         $tutor->givePermissionTo([
-            'jadwal.read',
             'presensi.create',
             'presensi.read',
             'nilai.create',
@@ -67,14 +62,12 @@ class RolePermissionSeeder extends Seeder
 
         $siswa = Role::create(['name' => 'siswa', 'guard_name' => 'web']);
         $siswa->givePermissionTo([
-            'jadwal.read',
             'nilai.read',
             'pembayaran.read',
         ]);
 
         $orangTua = Role::create(['name' => 'orang_tua', 'guard_name' => 'web']);
         $orangTua->givePermissionTo([
-            'jadwal.read',
             'nilai.read',
             'pembayaran.read',
         ]);

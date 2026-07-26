@@ -39,9 +39,12 @@ export interface LaporanKehadiran {
   hadir: number
   tidak_hadir: number
   siswa: { id: number; nama: string; nis: string }
+  paket?: string
+  kuota?: number
+  sisa?: number
 }
 
-export function useLaporanKehadiran(params: { siswa_id?: string; page?: number; per_page?: number }) {
+export function useLaporanKehadiran(params: { siswa_id?: string; kelas_id?: string; tgl_mulai?: string; tgl_selesai?: string; page?: number; per_page?: number }) {
   return useQuery({
     queryKey: ['laporan', 'kehadiran', params],
     queryFn: async () => {

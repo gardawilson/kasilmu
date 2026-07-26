@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Kasilmu - Flow Presentasi</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  @page { size: A4 landscape; margin: 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #e8eaf6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  .slide { width: 277mm; min-height: 190mm; background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.12); margin-bottom: 30px; padding: 30mm 20mm 20mm; position: relative; overflow: hidden; page-break-after: always; }
+  .slide-number { position: absolute; bottom: 15mm; right: 20mm; font-size: 14px; color: #999; }
+  h1 { font-size: 36px; color: #1a237e; margin-bottom: 8px; }
+  h2 { font-size: 24px; color: #1a237e; margin-bottom: 6px; }
+  h3 { font-size: 18px; color: #5c6bc0; margin-bottom: 12px; }
+  .subtitle { font-size: 16px; color: #666; margin-bottom: 20px; }
+  .mermaid { display: flex; justify-content: center; margin: 10px 0; }
+  .mermaid svg { max-width: 100%; height: auto; }
+
+  /* COVER */
+  .cover { background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .cover h1 { color: white; font-size: 48px; margin-bottom: 16px; }
+  .cover .subtitle { color: rgba(255,255,255,.8); font-size: 22px; margin-bottom: 40px; }
+  .cover .meta { color: rgba(255,255,255,.6); font-size: 16px; margin-top: 60px; }
+  .cover .logo { font-size: 64px; margin-bottom: 20px; }
+
+  /* STEP TABLE */
+  .step-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+  .step-table th { background: #1a237e; color: white; padding: 10px 14px; text-align: left; }
+  .step-table td { padding: 10px 14px; border-bottom: 1px solid #e0e0e0; }
+  .step-table tr:nth-child(even) { background: #f5f5f5; }
+  .step-table .step-num { font-weight: 700; color: #1a237e; text-align: center; width: 40px; }
+
+  .badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .badge-admin { background: #e3f2fd; color: #1565c0; }
+  .badge-pengajar { background: #e8f5e9; color: #2e7d32; }
+  .badge-sistem { background: #fff3e0; color: #e65100; }
+
+  .flow-box { border: 2px solid #c5cae9; border-radius: 10px; padding: 14px; margin: 8px 0; text-align: center; }
+  .legend { display: flex; gap: 24px; justify-content: center; margin: 10px 0 20px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="slide cover">
+  <div class="logo">📚</div>
+  <h1>Kasilmu</h1>
+  <div class="subtitle">Sistem Informasi Manajemen Bimbel<br>Flow Penggunaan Aplikasi</div>
+  <div class="meta">Presentasi untuk Client • Juli 2026</div>
+  <div class="slide-number">1 / 5</div>
+</div>
+
+<!-- ==================== SLIDE 2: OVERVIEW ==================== -->
+<div class="slide">
+  <h1>Alur Lengkap Aplikasi</h1>
+  <div class="subtitle">Dari Pendaftaran Siswa hingga Presensi oleh Pengajar</div>
+
+  <div class="legend">
+    <span class="badge badge-admin">Admin</span>
+    <span class="badge badge-pengajar">Pengajar</span>
+    <span class="badge badge-sistem">Sistem</span>
+  </div>
+
+  <div class="mermaid">
+flowchart TB
+    subgraph Admin
+        A1["🔵 Admin<br/>Buat Kelas Baru"] --> A2["🔵 Admin<br/>Daftarkan Siswa<br/>ke Kelas"]
+        A2 --> A3["🔵 Admin<br/>Buat Jadwal<br/>Belajar"]
+    end
+    A3 --> B["✅ Siswa Terdaftar<br/>& Punya Jadwal"]
+    B --> C1["🟢 Pengajar<br/>Buka Menu Presensi<br/>Klik Mulai Mengajar"]
+    C1 --> C2["🟢 Pengajar<br/>Pilih Kelas & Tanggal"]
+    C2 --> D["🟠 Sistem Otomatis<br/>Siapkan Daftar Hadir"]
+    D --> C3["🟢 Pengajar<br/>Atur Kehadiran:<br/>Hadir ✅ | Tidak ❌"]
+    C3 --> C4["🟢 Pengajar<br/>Isi Catatan Performa"]
+    C4 --> C5["🟢 Pengajar<br/>Simpan Presensi"]
+    style A1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style B fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
+  </div>
+
+  <div class="slide-number">2 / 5</div>
+</div>
+
+<!-- ==================== SLIDE 3: ADMIN FLOW ==================== -->
+<div class="slide">
+  <h1>Flow Admin</h1>
+  <div class="subtitle">Menyiapkan Kelas, Mendaftarkan Siswa, dan Membuat Jadwal</div>
+
+  <div class="mermaid">
+flowchart LR
+    A["📝 Buat Kelas"] --> B["👤 Daftarkan Siswa"]
+    B --> C["📅 Buat Jadwal"]
+    A -.-> A1["Isi: nama kelas<br/>mata pelajaran<br/>pengajar<br/>kapasitas<br/>harga"]
+    B -.-> B1["Isi: nama siswa<br/>tanggal lahir<br/>jenjang (SD/SMP/SMA)<br/>pilih kelas"]
+    C -.-> C1["Isi: hari belajar<br/>jam mulai - selesai<br/>ruang"]
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A1 fill:#f5f5f5,stroke:#bbb,stroke-dasharray:4
+    style B1 fill:#f5f5f5,stroke:#bbb,stroke-dasharray:4
+    style C1 fill:#f5f5f5,stroke:#bbb,stroke-dasharray:4
+  </div>
+
+  <table class="step-table">
+    <tr><th>#</th><th>Langkah</th><th>Penjelasan</th></tr>
+    <tr><td class="step-num">1</td><td><span class="badge badge-admin">Admin</span> Buat Kelas Baru</td><td>Masukkan nama kelas, mata pelajaran, pilih pengajar, tentukan kapasitas maksimal & biaya</td></tr>
+    <tr><td class="step-num">2</td><td><span class="badge badge-admin">Admin</span> Daftarkan Siswa</td><td>Isi data siswa (nama, TTL, jenjang sekolah) dan pilih kelas tujuan. Sistem otomatis cek kapasitas kelas</td></tr>
+    <tr><td class="step-num">3</td><td><span class="badge badge-admin">Admin</span> Buat Jadwal</td><td>Tentukan hari dan jam belajar untuk kelas tersebut. Jadwal akan tampil di menu pengajar</td></tr>
+  </table>
+
+  <div class="slide-number">3 / 5</div>
+</div>
+
+<!-- ==================== SLIDE 4: PENGAJAR FLOW ==================== -->
+<div class="slide">
+  <h1>Flow Presensi oleh Pengajar</h1>
+  <div class="subtitle">Mulai dari Membuka Menu hingga Presensi Tersimpan</div>
+
+  <div class="mermaid">
+flowchart TB
+    A["🟢 Pengajar<br/>Buka Menu Presensi"] --> B["🟢 Pengajar<br/>Klik 'Mulai Mengajar'"]
+    B --> C["🟢 Pengajar<br/>Pilih Kelas & Tanggal"]
+    C --> D["🟠 Sistem Otomatis<br/>Menyiapkan Daftar Hadir<br/>Semua Siswa di Kelas Itu"]
+    D --> E["🟢 Pengajar<br/>Atur Kehadiran:<br/>✅ Hadir / ❌ Tidak Hadir"]
+    E --> F["🟢 Pengajar<br/>Isi Catatan Performa<br/>(opsional)"]
+    F --> G["🟢 Pengajar<br/>Klik Simpan"]
+    G --> H["✅ Presensi Tersimpan"]
+    style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style H fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
+  </div>
+
+  <table class="step-table">
+    <tr><th>#</th><th>Langkah</th><th>Penjelasan</th></tr>
+    <tr><td class="step-num">1</td><td><span class="badge badge-pengajar">Pengajar</span> Buka Menu Presensi</td><td>Masuk ke menu Presensi untuk melihat daftar pertemuan</td></tr>
+    <tr><td class="step-num">2</td><td><span class="badge badge-pengajar">Pengajar</span> Klik "Mulai Mengajar"</td><td>Pilih kelas yang akan diajar dan tanggal pertemuan</td></tr>
+    <tr><td class="step-num">3</td><td><span class="badge badge-sistem">Sistem</span> Siapkan Daftar Hadir</td><td>Sistem otomatis menampilkan daftar semua siswa aktif di kelas tersebut</td></tr>
+    <tr><td class="step-num">4</td><td><span class="badge badge-pengajar">Pengajar</span> Atur Kehadiran</td><td>Tandai setiap siswa: Hadir ✅ atau Tidak Hadir ❌. Jika tidak hadir, isi keterangan</td></tr>
+    <tr><td class="step-num">5</td><td><span class="badge badge-pengajar">Pengajar</span> Catatan Performa</td><td>Isi catatan performa hari ini untuk setiap siswa (nilai, sikap, dll.)</td></tr>
+    <tr><td class="step-num">6</td><td><span class="badge badge-pengajar">Pengajar</span> Simpan</td><td>Klik Simpan, data kehadiran tersimpan dan bisa dilihat kapan saja</td></tr>
+  </table>
+
+  <div class="slide-number">4 / 5</div>
+</div>
+
+<!-- ==================== SLIDE 5: SUMMARY + FITUR ==================== -->
+<div class="slide">
+  <h1>Ringkasan Fitur Utama</h1>
+  <div class="subtitle">Fitur-fitur yang tersedia di aplikasi Kasilmu</div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:20px;">
+    <div style="flex:1; min-width:200px; background:#e3f2fd; border-radius:10px; padding:18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">📋</div>
+      <div style="font-weight:700; color:#1565c0;">Manajemen Kelas</div>
+      <div style="font-size:13px; color:#555; margin-top:6px;">Buat & kelola kelas, atur kapasitas, dan pantau siswa</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#e8f5e9; border-radius:10px; padding:18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">👤</div>
+      <div style="font-weight:700; color:#2e7d32;">Data Siswa</div>
+      <div style="font-size:13px; color:#555; margin-top:6px;">Pendaftaran siswa, histori kelas, dan data lengkap</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#fff3e0; border-radius:10px; padding:18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">📅</div>
+      <div style="font-weight:700; color:#e65100;">Jadwal Belajar</div>
+      <div style="font-size:13px; color:#555; margin-top:6px;">Atur jadwal per kelas, tampilkan jadwal hari ini</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#f3e5f5; border-radius:10px; padding:18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">✅</div>
+      <div style="font-weight:700; color:#6a1b9a;">Presensi</div>
+      <div style="font-size:13px; color:#555; margin-top:6px;">Absensi harian, catatan performa, riwayat kehadiran</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#e0f2f1; border-radius:10px; padding:18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">💰</div>
+      <div style="font-weight:700; color:#00695c;">Pembayaran</div>
+      <div style="font-size:13px; color:#555; margin-top:6px;">Tagihan & pembayaran SPP siswa</div>
+    </div>
+    <div style="flex:1; min-width:200px; background:#fce4ec; border-radius:10px; padding:18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">📊</div>
+      <div style="font-weight:700; color:#c62828;">Laporan</div>
+      <div style="font-size:13px; color:#555; margin-top:6px;">Laporan keuangan, siswa, dan kehadiran</div>
+    </div>
+  </div>
+
+  <div style="margin-top:30px; padding:20px; background:#f5f5f5; border-radius:10px; text-align:center;">
+    <h3 style="margin-bottom:8px;">Alur Singkat Penggunaan</h3>
+    <div style="font-size:15px; line-height:1.8;">
+      <strong>Admin:</strong> Buat Kelas → Daftarkan Siswa → Buat Jadwal<br>
+      <strong>Pengajar:</strong> Mulai Mengajar → Atur Kehadiran → Simpan Presensi
+    </div>
+  </div>
+
+  <div class="slide-number">5 / 5</div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    themeVariables: {
+      primaryColor: '#e3f2fd',
+      primaryBorderColor: '#1565c0',
+      lineColor: '#5c6bc0',
+      secondaryColor: '#e8f5e9',
+      tertiaryColor: '#fff3e0',
+      fontSize: '15px',
+      fontFamily: 'Segoe UI, Arial, sans-serif'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis',
+      nodeSpacing: 40,
+      rankSpacing: 50
+    }
+  });
+</script>
+</body>
+</html>

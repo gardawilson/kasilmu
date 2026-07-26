@@ -6,6 +6,8 @@ use App\Models\Kela;
 use App\Models\Siswa;
 use App\Models\Tutor;
 use App\Models\User;
+use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,8 +18,8 @@ class PertemuanTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(AdminUserSeeder::class);
     }
 
     private function admin(): User
@@ -140,8 +142,8 @@ class PertemuanTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseHas('presensis', [
             'pertemuan_id' => $pertemuanId,
-            'siswa_id'     => $siswa->id,
-            'catatan'      => 'Sudah paham perkalian, perlu latihan soal cerita',
+            'siswa_id' => $siswa->id,
+            'catatan' => 'Sudah paham perkalian, perlu latihan soal cerita',
         ]);
     }
 

@@ -5,6 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\Kela;
 use App\Models\Tutor;
 use App\Models\User;
+use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,8 +17,8 @@ class SiswaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(AdminUserSeeder::class);
     }
 
     private function auth(): User
@@ -78,7 +80,7 @@ class SiswaTest extends TestCase
     {
         $create = $this->actingAs($this->auth())->postJson('/api/siswa', $this->siswaPayload($this->kela()->id));
 
-        $response = $this->actingAs($this->auth())->getJson('/api/siswa/' . $create->json('data.id'));
+        $response = $this->actingAs($this->auth())->getJson('/api/siswa/'.$create->json('data.id'));
 
         $response->assertStatus(200)
             ->assertJsonPath('data.nama', 'Siswa Test');
@@ -88,7 +90,7 @@ class SiswaTest extends TestCase
     {
         $create = $this->actingAs($this->auth())->postJson('/api/siswa', $this->siswaPayload($this->kela()->id));
 
-        $response = $this->actingAs($this->auth())->putJson('/api/siswa/' . $create->json('data.id'), [
+        $response = $this->actingAs($this->auth())->putJson('/api/siswa/'.$create->json('data.id'), [
             'nama' => 'Updated Name', 'tgl_lahir' => '2010-01-01', 'jenjang' => 'SD', 'tingkat' => 3,
         ]);
 
@@ -101,7 +103,7 @@ class SiswaTest extends TestCase
         $create = $this->actingAs($this->auth())->postJson('/api/siswa', $this->siswaPayload($this->kela()->id));
 
         $id = $create->json('data.id');
-        $response = $this->actingAs($this->auth())->deleteJson('/api/siswa/' . $id);
+        $response = $this->actingAs($this->auth())->deleteJson('/api/siswa/'.$id);
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('siswas', ['id' => $id]);

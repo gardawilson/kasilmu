@@ -4,6 +4,8 @@ namespace Tests\Feature\Api;
 
 use App\Models\Sekolah;
 use App\Models\User;
+use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,8 +16,8 @@ class SekolahTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(AdminUserSeeder::class);
     }
 
     private function auth(): User

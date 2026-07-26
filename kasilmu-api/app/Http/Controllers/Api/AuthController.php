@@ -14,13 +14,13 @@ class AuthController
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Email atau password salah.'],
             ]);
@@ -29,7 +29,7 @@ class AuthController
         $token = $user->createToken('kasilmu-token')->plainTextToken;
 
         return $this->success([
-            'user'  => $user->load('roles', 'tutor:id,user_id,nama'),
+            'user' => $user->load('roles', 'tutor:id,user_id,nama'),
             'token' => $token,
         ], 'Login berhasil');
     }
@@ -49,9 +49,9 @@ class AuthController
     public function updateProfile(Request $request)
     {
         $request->validate([
-            'name'    => 'string|max:255',
+            'name' => 'string|max:255',
             'no_telp' => 'nullable|string|max:20',
-            'foto'    => 'nullable|string|max:255',
+            'foto' => 'nullable|string|max:255',
         ]);
 
         $user = $request->user();
@@ -64,12 +64,12 @@ class AuthController
     {
         $request->validate([
             'password_lama' => 'required',
-            'password'      => 'required|min:8|confirmed',
+            'password' => 'required|min:8|confirmed',
         ]);
 
         $user = $request->user();
 
-        if (!Hash::check($request->password_lama, $user->password)) {
+        if (! Hash::check($request->password_lama, $user->password)) {
             return $this->error('Password lama salah', 422);
         }
 

@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Table, TableHead, TableRow, TableCell, TableBody, ToggleButtonGroup,
-  ToggleButton, TextField, Box, Typography,
+  ToggleButton, TextField, Box, Typography, Chip,
 } from '@mui/material'
-import { CheckCircle, Cancel } from '@mui/icons-material'
+import { CheckCircle, Cancel, Warning } from '@mui/icons-material'
 import { usePertemuanDetail, usePresensi, useStorePresensi } from './usePertemuan'
 import { useKelasDetail } from '../kelas/useKelas'
 
@@ -83,14 +83,20 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
               <TableCell>Nama</TableCell>
               <TableCell>Kehadiran</TableCell>
               <TableCell>Keterangan</TableCell>
+              <TableCell>Sisa Kuota</TableCell>
               <TableCell>Catatan Performa Hari Ini</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {siswaList.length === 0 ? (
-              <TableRow><TableCell colSpan={5} align="center">Belum ada siswa di kelas ini</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} align="center">Belum ada siswa di kelas ini</TableCell></TableRow>
             ) : (
-              siswaList.map((siswa: any) => (
+              siswaList.map((siswa: any) => {
+                const presensiData = (presensiList as any[]).find((p) => p.siswa_id === siswa.id)
+                const sisa = presensiData?.sisa_pertemuan
+                const kuota = presensiData?.kuota
+
+                return (
                 <TableRow key={siswa.id}>
                   <TableCell>{siswa.nis}</TableCell>
                   <TableCell>{siswa.nama}</TableCell>
@@ -128,6 +134,25 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                     )}
                   </TableCell>
                   <TableCell>
+                    {sisa !== undefined && kuota !== undefined ? (
+                      <Chip
+                        icon={sisa <= 2 ? <Warning sx={{ fontSize: 14 }} /> : undefined}
+                        label={`${sisa}/${kuota}`}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          ...(sisa <= 0
+                            ? { bgcolor: '#fee2e2', color: '#dc2626' }
+                            : sisa <= 2
+                            ? { bgcolor: '#fef3c7', color: '#b45309' }
+                            : { bgcolor: '#dcfce7', color: '#15803d' }),
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="caption" sx={{ color: '#94a3b8' }}>—</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <TextField size="small" placeholder="Misal: sudah paham perkalian, perlu latihan soal cerita"
                       multiline maxRows={2}
                       value={dataSiswa[siswa.id]?.catatan || ''}
@@ -138,7 +163,8 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                       sx={{ minWidth: 260 }} />
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>

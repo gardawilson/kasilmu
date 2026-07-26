@@ -21,8 +21,8 @@ return new class extends Migration
             if ($program) {
                 DB::table('kelas')->where('id', $kelas->id)->update([
                     'mata_pelajaran' => $program->nama,
-                    'deskripsi'      => $program->deskripsi,
-                    'durasi_bulan'   => $program->durasi_bulan,
+                    'deskripsi' => $program->deskripsi,
+                    'durasi_bulan' => $program->durasi_bulan,
                 ]);
             }
         }
