@@ -7,7 +7,8 @@ import {
 import {
   Menu as MenuIcon, Dashboard, People, School,
   Receipt, Logout, Group, Assessment, HowToReg, Grade,
-  ChevronLeft, AccountCircle, AccountBalance,
+  ChevronLeft, AccountCircle, AccountBalance, CardMembership,
+  ManageAccounts,
 } from '@mui/icons-material'
 import { useAuth } from '../../features/auth/useAuth'
 
@@ -17,18 +18,24 @@ const drawerCollapsed = 72
 const menu = [
   { label: 'Dashboard', icon: <Dashboard fontSize="small" />, path: '/', color: '#3b82f6' },
   { label: 'Siswa', icon: <People fontSize="small" />, path: '/siswa', color: '#10b981' },
-  { label: 'Pengajar', icon: <Group fontSize="small" />, path: '/pengajar', color: '#8b5cf6' },
+  { label: 'Pengajar', icon: <Group fontSize="small" />, path: '/pengajar', color: '#8b5cf6', hideForTutor: true },
   { label: 'Kelas', icon: <School fontSize="small" />, path: '/kelas', color: '#0d9488' },
-  { label: 'Sekolah', icon: <AccountBalance fontSize="small" />, path: '/sekolah', color: '#0284c7' },
+  { label: 'Paket', icon: <CardMembership fontSize="small" />, path: '/paket', color: '#a855f7', hideForTutor: true },
+  { label: 'Sekolah', icon: <AccountBalance fontSize="small" />, path: '/sekolah', color: '#0284c7', hideForTutor: true },
   { label: 'Presensi', icon: <HowToReg fontSize="small" />, path: '/presensi', color: '#06b6d4' },
-  { label: 'Pembayaran', icon: <Receipt fontSize="small" />, path: '/pembayaran', color: '#f97316' },
+  { label: 'Pembayaran', icon: <Receipt fontSize="small" />, path: '/pembayaran', color: '#f97316', hideForTutor: true },
   { label: 'Nilai', icon: <Grade fontSize="small" />, path: '/nilai', color: '#ef4444' },
-  { label: 'Laporan', icon: <Assessment fontSize="small" />, path: '/laporan', color: '#64748b' },
+  { label: 'Laporan', icon: <Assessment fontSize="small" />, path: '/laporan', color: '#64748b', hideForTutor: true },
+  { label: 'Manajemen Akun', icon: <ManageAccounts fontSize="small" />, path: '/akun', color: '#475569', adminOnly: true },
 ]
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
+  const isTutor = !!user?.roles?.some((r) => r.name === 'tutor')
+  const visibleMenu = menu.filter((item) => (!item.adminOnly || isAdmin) && (!item.hideForTutor || !isTutor))
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -60,7 +67,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
       <Box sx={{ overflowY: 'auto', flex: 1, py: 1.5, px: collapsed ? 0.75 : 1.25 }}>
         <List disablePadding>
-          {menu.map((item) => {
+          {visibleMenu.map((item) => {
             const isActive = location.pathname === item.path
             return (
               <ListItemButton

@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import { useCreateSiswa, useUpdateSiswa } from './useSiswa'
 import { useKelas } from '../kelas/useKelas'
 import { useSekolah, useCreateSekolah } from '../sekolah/useSekolah'
+import { usePaketList, useHargaPaket } from '../paket/usePaket'
 import type { Siswa } from '../../types'
 
 interface Props {
@@ -15,7 +16,7 @@ interface Props {
   editData?: Siswa | null
 }
 
-type SiswaFormData = Partial<Siswa> & { kelas_id?: number }
+type SiswaFormData = Partial<Siswa> & { kelas_id?: number; paket_id?: number }
 
 const TINGKAT_BY_JENJANG: Record<'SD' | 'SMP' | 'SMA', number[]> = {
   SD: [1, 2, 3, 4, 5, 6],
@@ -33,10 +34,14 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
 
   const selectedJenjang = watch('jenjang')
   const selectedKelasId = watch('kelas_id')
+  const selectedPaketId = watch('paket_id')
 
   const { data: kelasList } = useKelas({ status: 'aktif', per_page: 100 })
   const { data: sekolahList } = useSekolah()
+  const { data: paketList } = usePaketList({ per_page: 100 })
+  const { data: hargaPaketList } = useHargaPaket(Number(selectedKelasId) || 0)
   const selectedKelas = kelasList?.data?.find((k) => k.id === Number(selectedKelasId))
+  const selectedHargaPaket = hargaPaketList?.data?.find((h) => h.paket_id === Number(selectedPaketId))
 
   useEffect(() => {
     if (open) {
@@ -167,14 +172,37 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
             </TextField>
           )}
           {!editData && selectedKelas && (
-            <Alert severity="info" sx={{ mt: 1 }}>
-              Kelas "{selectedKelas.nama}" — <strong>{selectedKelas.mata_pelajaran}</strong> — Rp {Number(selectedKelas.harga).toLocaleString('id-ID')} — {selectedKelas.pertemuans_count ?? 0}x pertemuan
+            <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
+              Kelas "{selectedKelas.nama}" — <strong>{selectedKelas.mata_pelajaran}</strong>
             </Alert>
+          )}
+          {!editData && (
+            <TextField label="Pilih Paket" fullWidth margin="dense" select required
+              {...register('paket_id', { required: 'Paket wajib dipilih', valueAsNumber: true })}
+              error={!!errors.paket_id} helperText={errors.paket_id?.message}
+              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} defaultValue="">
+              <MenuItem value="" disabled>-- Pilih Paket --</MenuItem>
+              {paketList?.data?.map((p) => (
+                <MenuItem key={p.id} value={p.id}>{p.nama} ({p.jumlah_pertemuan}x pertemuan)</MenuItem>
+              ))}
+            </TextField>
+          )}
+          {!editData && selectedKelasId && selectedPaketId && (
+            selectedHargaPaket ? (
+              <Alert severity="success" sx={{ mt: 1 }}>
+                Tagihan yang akan dibuat: <strong>Rp {Number(selectedHargaPaket.harga).toLocaleString('id-ID')}</strong>
+              </Alert>
+            ) : (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                Harga untuk kombinasi kelas dan paket ini belum diatur. Atur dulu lewat "Atur Paket" pada halaman Kelas.
+              </Alert>
+            )
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Batal</Button>
-          <Button type="submit" variant="contained" disabled={create.isPending || update.isPending}>
+          <Button type="submit" variant="contained"
+            disabled={create.isPending || update.isPending || (!editData && !!selectedPaketId && !selectedHargaPaket)}>
             {editData ? 'Update' : 'Simpan'}
           </Button>
         </DialogActions>

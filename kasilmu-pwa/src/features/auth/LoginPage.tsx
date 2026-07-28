@@ -4,7 +4,7 @@ import { Box, Card, TextField, Button, Typography, Alert } from '@mui/material'
 import { useAuth } from './useAuth'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@kasilmu.com')
+  const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { login } = useAuth()
@@ -14,10 +14,10 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     try {
-      await login(email, password)
+      await login(username, password)
       navigate('/')
     } catch (err: unknown) {
-      const msg = (err as any)?.response?.data?.errors?.email?.[0] || 'Login gagal'
+      const msg = (err as any)?.response?.data?.errors?.username?.[0] || 'Login gagal'
       setError(msg)
     }
   }
@@ -36,12 +36,11 @@ export default function LoginPage() {
 
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
-            label="Email"
-            type="email"
+            label="Username"
             fullWidth
             margin="normal"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
           <TextField

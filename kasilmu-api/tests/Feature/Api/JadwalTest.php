@@ -30,7 +30,7 @@ class JadwalTest extends TestCase
     {
         $tutor = Tutor::create(['user_id' => $tutorUser->id, 'nip' => 'T001', 'nama' => 'Tutor Satu', 'bidang_ajar' => 'Matematika']);
 
-        return Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'tutor_id' => $tutor->id, 'kapasitas' => 10, 'status' => 'aktif']);
+        return Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
     }
 
     public function test_tutor_bisa_tambah_jadwal_kelas_sendiri()

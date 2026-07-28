@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\HargaPaket;
 use App\Models\Paket;
 use App\Models\Siswa;
 use App\Models\SiswaPaket;
@@ -10,11 +11,17 @@ use Illuminate\Http\Request;
 
 class SiswaPaketController
 {
-    use ApiResponse;
+    use ApiResponse, TutorScope;
 
     public function index(Request $request)
     {
         $query = SiswaPaket::with(['siswa:id,nama,nis', 'kelas:id,nama', 'paket:id,nama,jumlah_pertemuan']);
+
+        $kelasIds = $this->tutorKelasIds($request);
+
+        if ($kelasIds !== null) {
+            $query->whereIn('kelas_id', $kelasIds);
+        }
 
         if ($request->siswa_id) {
             $query->where('siswa_id', $request->siswa_id);
@@ -42,6 +49,14 @@ class SiswaPaketController
 
         $paket = Paket::findOrFail($validated['paket_id']);
 
+        $hargaPaket = HargaPaket::where('kelas_id', $validated['kelas_id'])
+            ->where('paket_id', $validated['paket_id'])
+            ->first();
+
+        if (! $hargaPaket) {
+            return $this->error('Harga untuk kombinasi kelas dan paket ini belum diatur', 422);
+        }
+
         $validated['tgl_selesai'] = date('Y-m-d', strtotime($validated['tgl_mulai'].' +1 month'));
 
         SiswaPaket::where('siswa_id', $validated['siswa_id'])
@@ -54,7 +69,7 @@ class SiswaPaketController
         Tagihan::create([
             'siswa_id' => $validated['siswa_id'],
             'jenis' => 'spp',
-            'jumlah' => 0,
+            'jumlah' => $hargaPaket->harga,
             'tenggat' => $validated['tgl_mulai'],
             'status' => 'pending',
         ]);

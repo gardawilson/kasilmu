@@ -8,6 +8,7 @@ import { Add, Edit, Delete, Search, Inbox } from '@mui/icons-material'
 import { useSiswa, useDeleteSiswa } from './useSiswa'
 import SiswaForm from './SiswaForm'
 import DeleteDialog from '../../components/ui/DeleteDialog'
+import { useAuth } from '../auth/useAuth'
 import type { Siswa } from '../../types'
 
 const STATUS_SX: Record<string, object> = {
@@ -17,6 +18,8 @@ const STATUS_SX: Record<string, object> = {
 }
 
 export default function SiswaPage() {
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
   const [search, setSearch] = useState('')
@@ -37,9 +40,11 @@ export default function SiswaPage() {
             Kelola data siswa bimbingan belajar
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
-          Tambah Siswa
-        </Button>
+        {isAdmin && (
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
+            Tambah Siswa
+          </Button>
+        )}
       </Box>
 
       <Paper sx={{ overflow: 'hidden' }}>
@@ -65,23 +70,26 @@ export default function SiswaPage() {
               <TableCell>Siswa</TableCell>
               <TableCell>Sekolah</TableCell>
               <TableCell>Tingkat</TableCell>
+              <TableCell>Kelas</TableCell>
+              <TableCell>Paket</TableCell>
+              <TableCell>Sisa Kuota</TableCell>
               <TableCell>No. Telp Ortu</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell align="right" sx={{ pr: 2 }}>Aksi</TableCell>
+              {isAdmin && <TableCell align="right" sx={{ pr: 2 }}>Aksi</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(6)].map((_, j) => (
+                  {[...Array(isAdmin ? 9 : 8)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={20} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={isAdmin ? 9 : 8}>
                   <Box sx={{ py: 8, textAlign: 'center' }}>
                     <Inbox sx={{ fontSize: 40, color: '#cbd5e1', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Belum ada data siswa</Typography>
@@ -106,25 +114,76 @@ export default function SiswaPage() {
                   <TableCell sx={{ color: '#475569' }}>
                     {siswa.tingkat ? `${siswa.jenjang} - Tingkat ${siswa.tingkat}` : (siswa.kelas_asal || '-')}
                   </TableCell>
+                  <TableCell>
+                    {!siswa.kelas?.length ? (
+                      <Typography variant="body2" sx={{ color: '#94a3b8' }}>-</Typography>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {siswa.kelas.map((k) => (
+                          <Chip key={k.id} size="small" label={k.nama}
+                            sx={{ bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 600 }} />
+                        ))}
+                      </Box>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!siswa.siswa_pakets?.length ? (
+                      <Typography variant="body2" sx={{ color: '#94a3b8' }}>-</Typography>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {siswa.siswa_pakets.map((sp) => (
+                          <Tooltip key={sp.id} title={sp.kelas?.nama ?? ''}>
+                            <Chip size="small" label={sp.paket?.nama ?? '-'}
+                              sx={{ bgcolor: '#ede9fe', color: '#7c3aed', fontWeight: 600 }} />
+                          </Tooltip>
+                        ))}
+                      </Box>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!siswa.siswa_pakets?.length ? (
+                      <Typography variant="body2" sx={{ color: '#94a3b8' }}>-</Typography>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {siswa.siswa_pakets.map((sp) => (
+                          <Tooltip key={sp.id}
+                            title={`${sp.kelas?.nama ?? ''} — berlaku s.d. ${new Date(sp.tgl_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
+                            <Chip size="small"
+                              label={`${sp.sisa_pertemuan ?? '?'}/${sp.paket?.jumlah_pertemuan ?? '?'} · s.d. ${new Date(sp.tgl_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`}
+                              sx={{
+                                fontWeight: 600,
+                                ...((sp.sisa_pertemuan ?? 0) <= 0
+                                  ? { bgcolor: '#fee2e2', color: '#dc2626' }
+                                  : (sp.sisa_pertemuan ?? 0) <= 2
+                                  ? { bgcolor: '#fef3c7', color: '#b45309' }
+                                  : { bgcolor: '#dcfce7', color: '#15803d' }),
+                              }} />
+                          </Tooltip>
+                        ))}
+                      </Box>
+                    )}
+                  </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{siswa.no_telp_ortu || '-'}</TableCell>
                   <TableCell>
                     <Chip label={siswa.status} size="small"
                       sx={{ fontWeight: 600, ...STATUS_SX[siswa.status] }} />
                   </TableCell>
-                  <TableCell align="right" sx={{ pr: 1 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => { setEditData(siswa); setOpen(true) }}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hapus">
-                      <IconButton size="small" onClick={() => setDeleteId(siswa.id)}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell align="right" sx={{ pr: 1 }}>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => { setEditData(siswa); setOpen(true) }}
+                          sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Hapus">
+                        <IconButton size="small" onClick={() => setDeleteId(siswa.id)}
+                          sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

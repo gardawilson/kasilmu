@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\HargaPaketController;
 use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\NilaiController;
+use App\Http\Controllers\Api\PaketController;
 use App\Http\Controllers\Api\PembayaranController;
 use App\Http\Controllers\Api\PertemuanController;
 use App\Http\Controllers\Api\SekolahController;
@@ -12,8 +14,7 @@ use App\Http\Controllers\Api\SiswaController;
 use App\Http\Controllers\Api\SiswaPaketController;
 use App\Http\Controllers\Api\TagihanController;
 use App\Http\Controllers\Api\TutorController;
-use App\Models\Paket;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -25,7 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auth/password', [AuthController::class, 'updatePassword']);
 
     Route::middleware('role:admin')->group(function () {
-        Route::apiResource('siswa', SiswaController::class);
+        Route::post('siswa', [SiswaController::class, 'store']);
+        Route::put('siswa/{siswa}', [SiswaController::class, 'update']);
+        Route::delete('siswa/{siswa}', [SiswaController::class, 'destroy']);
         Route::get('sekolah', [SekolahController::class, 'index']);
         Route::post('sekolah', [SekolahController::class, 'store']);
         Route::put('sekolah/{sekolah}', [SekolahController::class, 'update']);
@@ -45,25 +48,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('laporan/siswa', [LaporanController::class, 'siswa']);
         Route::get('laporan/kehadiran', [LaporanController::class, 'kehadiran']);
         Route::get('dashboard', [DashboardController::class, 'index']);
-        Route::get('paket', function (Request $request) {
-            $paginator = Paket::query()->paginate($request->per_page ?? 20);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Berhasil',
-                'data' => $paginator->items(),
-                'meta' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                ],
-            ]);
-        });
+        Route::apiResource('paket', PaketController::class);
         Route::post('siswa/{siswa}/paket', [SiswaPaketController::class, 'store']);
         Route::get('siswa/{siswa}/paket', [SiswaPaketController::class, 'aktif']);
         Route::put('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'update']);
         Route::delete('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'destroy']);
+        Route::get('harga-paket', [HargaPaketController::class, 'index']);
+        Route::post('harga-paket', [HargaPaketController::class, 'store']);
+        Route::apiResource('user', UserController::class)->except('show');
     });
 
     Route::middleware('role:admin|tutor')->group(function () {
@@ -78,6 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:admin|tutor|siswa|orang_tua')->group(function () {
+        Route::get('siswa', [SiswaController::class, 'index']);
+        Route::get('siswa/{siswa}', [SiswaController::class, 'show']);
         Route::get('siswa-paket', [SiswaPaketController::class, 'index']);
         Route::get('kelas', [KelasController::class, 'index']);
         Route::get('kelas/{kela}', [KelasController::class, 'show']);

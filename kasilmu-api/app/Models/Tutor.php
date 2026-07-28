@@ -18,8 +18,13 @@ class Tutor extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function kelas(): HasMany
+    public function pertemuans(): HasMany
     {
-        return $this->hasMany(Kela::class, 'tutor_id');
+        return $this->hasMany(Pertemuan::class);
+    }
+
+    public function kelasIds(): array
+    {
+        return $this->pertemuans()->distinct()->pluck('kelas_id')->all();
     }
 }

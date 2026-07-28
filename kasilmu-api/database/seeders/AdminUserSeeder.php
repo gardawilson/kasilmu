@@ -11,6 +11,7 @@ class AdminUserSeeder extends Seeder
     {
         $admin = User::create([
             'name' => 'Admin Kasilmu',
+            'username' => 'admin',
             'email' => 'admin@kasilmu.com',
             'password' => bcrypt('password'),
             'no_telp' => '081234567890',
@@ -21,6 +22,7 @@ class AdminUserSeeder extends Seeder
 
         $tutorUser = User::create([
             'name' => 'Tutor Demo',
+            'username' => 'tutordemo',
             'email' => 'tutor@kasilmu.com',
             'password' => bcrypt('password'),
             'no_telp' => '081234567891',
@@ -31,6 +33,7 @@ class AdminUserSeeder extends Seeder
 
         $siswaUser = User::create([
             'name' => 'Siswa Demo',
+            'username' => 'siswademo',
             'email' => 'siswa@kasilmu.com',
             'password' => bcrypt('password'),
             'no_telp' => '081234567892',

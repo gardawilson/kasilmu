@@ -61,8 +61,6 @@ export default function KelasPage() {
             <TableRow>
               <TableCell>Nama Kelas</TableCell>
               <TableCell>Mata Pelajaran</TableCell>
-              <TableCell>Pengajar</TableCell>
-              <TableCell>Harga</TableCell>
               <TableCell>Kapasitas</TableCell>
               <TableCell>Pertemuan</TableCell>
               <TableCell>Status</TableCell>
@@ -73,14 +71,14 @@ export default function KelasPage() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(8)].map((_, j) => (
+                  {[...Array(6)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={20} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={6}>
                   <Box sx={{ py: 8, textAlign: 'center' }}>
                     <Inbox sx={{ fontSize: 40, color: '#cbd5e1', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Belum ada data kelas</Typography>
@@ -95,8 +93,6 @@ export default function KelasPage() {
                     <Chip label={kelas.mata_pelajaran} size="small"
                       sx={{ bgcolor: '#f59e0b12', color: '#b45309', fontWeight: 600 }} />
                   </TableCell>
-                  <TableCell sx={{ color: '#475569' }}>{kelas.tutor?.nama ?? '-'}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Rp {Number(kelas.harga).toLocaleString('id-ID')}</TableCell>
                   <TableCell sx={{ color: '#475569' }}>{kelas.kapasitas} siswa</TableCell>
                   <TableCell sx={{ color: '#475569' }}>{kelas.pertemuans_count ?? 0}x</TableCell>
                   <TableCell>
@@ -108,7 +104,7 @@ export default function KelasPage() {
                     }} />
                   </TableCell>
                   <TableCell align="right" sx={{ pr: 1 }}>
-                    <Tooltip title="Atur Paket">
+                    <Tooltip title="Atur Harga Paket">
                       <IconButton size="small" onClick={() => setPaketDialog(kelas.id)}
                         sx={{ color: '#94a3b8', '&:hover': { color: '#8b5cf6', bgcolor: '#8b5cf60f' } }}>
                         <Assignment fontSize="small" />

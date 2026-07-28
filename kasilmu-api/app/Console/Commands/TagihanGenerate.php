@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\HargaPaket;
 use App\Models\SiswaPaket;
 use App\Models\Tagihan;
 use Illuminate\Console\Command;
@@ -35,7 +36,9 @@ class TagihanGenerate extends Command
                 continue;
             }
 
-            $harga = $sp->kelas?->harga ?? 0;
+            $harga = HargaPaket::where('kelas_id', $sp->kelas_id)
+                ->where('paket_id', $sp->paket_id)
+                ->value('harga') ?? 0;
 
             Tagihan::create([
                 'siswa_id' => $sp->siswa_id,

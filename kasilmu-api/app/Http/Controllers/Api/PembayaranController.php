@@ -7,11 +7,17 @@ use Illuminate\Http\Request;
 
 class PembayaranController
 {
-    use ApiResponse;
+    use ApiResponse, TutorScope;
 
     public function index(Request $request)
     {
         $query = Pembayaran::with(['tagihan.siswa:id,nama,nis']);
+
+        $kelasIds = $this->tutorKelasIds($request);
+
+        if ($kelasIds !== null) {
+            $query->whereHas('tagihan.siswa.kelas', fn ($q) => $q->whereIn('kelas.id', $kelasIds));
+        }
 
         if ($tagihan_id = $request->tagihan_id) {
             $query->where('tagihan_id', $tagihan_id);
@@ -42,8 +48,17 @@ class PembayaranController
         return $this->success($pembayaran->load('tagihan.siswa:id,nama,nis'), 'Pembayaran berhasil dicatat', 201);
     }
 
-    public function show(Pembayaran $pembayaran)
+    public function show(Request $request, Pembayaran $pembayaran)
     {
+        $kelasIds = $this->tutorKelasIds($request);
+
+        if ($kelasIds !== null) {
+            $siswaKelasIds = $pembayaran->tagihan->siswa->kelas->pluck('id');
+            if ($siswaKelasIds->intersect($kelasIds)->isEmpty()) {
+                return $this->error('Anda tidak memiliki akses ke pembayaran ini', 403);
+            }
+        }
+
         $pembayaran->load('tagihan.siswa');
 
         return $this->success($pembayaran);

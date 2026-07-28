@@ -2,11 +2,13 @@ import { useState } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
-  TextField, MenuItem, Box, Typography, Alert,
+  TextField, MenuItem, Box, Typography, Alert, Chip,
 } from '@mui/material'
 import { Delete, Add } from '@mui/icons-material'
 import { useKelasDetail, useAddSiswaKelas, useRemoveSiswaKelas } from './useKelas'
 import { useSiswa } from '../siswa/useSiswa'
+import { useHargaPaket, useSiswaPaketAktif, useCreateSiswaPaket } from '../paket/usePaket'
+import type { HargaPaket } from '../../types'
 
 interface Props {
   open: boolean
@@ -17,14 +19,24 @@ interface Props {
 export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
   const { data: detail, isLoading } = useKelasDetail(kelasId ?? 0)
   const { data: allSiswa } = useSiswa({ per_page: 100 })
+  const { data: hargaPaketList } = useHargaPaket(kelasId ?? 0)
   const add = useAddSiswaKelas(kelasId ?? 0)
   const remove = useRemoveSiswaKelas(kelasId ?? 0)
   const [selectedSiswa, setSelectedSiswa] = useState('')
+  const [addError, setAddError] = useState('')
+
+  const hargaPakets = hargaPaketList?.data ?? []
 
   const handleAdd = async () => {
     if (!selectedSiswa) return
-    await add.mutateAsync(Number(selectedSiswa))
-    setSelectedSiswa('')
+    setAddError('')
+    try {
+      await add.mutateAsync(Number(selectedSiswa))
+      setSelectedSiswa('')
+    } catch (err: unknown) {
+      const msg = (err as any)?.response?.data?.message || 'Gagal menambahkan siswa'
+      setAddError(msg)
+    }
   }
 
   const siswaTerdaftar = detail?.data?.siswa ?? []
@@ -46,6 +58,12 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
                 Kelas sudah penuh ({siswaTerdaftar.length}/{kapasitas})
               </Alert>
             )}
+            {hargaPakets.length === 0 && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Harga paket untuk kelas ini belum diatur. Atur dulu lewat menu Kelas → "Atur Paket" agar siswa bisa diberi paket.
+              </Alert>
+            )}
+            {addError && <Alert severity="error" sx={{ mb: 2 }}>{addError}</Alert>}
             <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
               <TextField select size="small" sx={{ minWidth: 250 }}
                 label="Tambah Siswa" value={selectedSiswa} disabled={isFull}
@@ -54,6 +72,7 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
                 <MenuItem value="" disabled>-- Pilih Siswa --</MenuItem>
                 {allSiswa?.data
                   ?.filter((s) => !siswaTerdaftar.some((ts: any) => ts.id === s.id))
+                  .filter((s) => !(s.kelas as any[] | undefined)?.some((k) => k.pivot?.status === 'aktif'))
                   .map((s) => (
                     <MenuItem key={s.id} value={s.id}>{s.nama} ({s.nis})</MenuItem>
                   ))}
@@ -69,25 +88,23 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
                   <TableCell>NIS</TableCell>
                   <TableCell>Nama</TableCell>
                   <TableCell>Sekolah</TableCell>
+                  <TableCell>Paket</TableCell>
                   <TableCell align="center">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {siswaTerdaftar.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} align="center">Belum ada siswa</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center">Belum ada siswa</TableCell></TableRow>
                 ) : (
                   siswaTerdaftar.map((siswa: any) => (
-                    <TableRow key={siswa.id}>
-                      <TableCell>{siswa.nis}</TableCell>
-                      <TableCell>{siswa.nama}</TableCell>
-                      <TableCell>{siswa.sekolah?.nama || '-'}</TableCell>
-                      <TableCell align="center">
-                        <IconButton size="small" color="error"
-                          onClick={() => remove.mutateAsync(siswa.id)} disabled={remove.isPending}>
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
+                    <SiswaRow
+                      key={siswa.id}
+                      siswa={siswa}
+                      kelasId={kelasId ?? 0}
+                      hargaPakets={hargaPakets}
+                      onRemove={() => remove.mutateAsync(siswa.id)}
+                      removing={remove.isPending}
+                    />
                   ))
                 )}
               </TableBody>
@@ -99,5 +116,69 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
         <Button onClick={onClose}>Tutup</Button>
       </DialogActions>
     </Dialog>
+  )
+}
+
+function SiswaRow({
+  siswa, kelasId, hargaPakets, onRemove, removing,
+}: {
+  siswa: any
+  kelasId: number
+  hargaPakets: HargaPaket[]
+  onRemove: () => void
+  removing: boolean
+}) {
+  const { data: aktifPaket } = useSiswaPaketAktif(siswa.id)
+  const createSiswaPaket = useCreateSiswaPaket()
+  const [selectedPaket, setSelectedPaket] = useState('')
+
+  const active = aktifPaket?.data
+
+  const handleAssign = async () => {
+    if (!selectedPaket) return
+    await createSiswaPaket.mutateAsync({
+      siswa_id: siswa.id,
+      kelas_id: kelasId,
+      paket_id: Number(selectedPaket),
+      tgl_mulai: new Date().toISOString().slice(0, 10),
+    })
+    setSelectedPaket('')
+  }
+
+  return (
+    <TableRow>
+      <TableCell>{siswa.nis}</TableCell>
+      <TableCell>{siswa.nama}</TableCell>
+      <TableCell>{siswa.sekolah?.nama || '-'}</TableCell>
+      <TableCell>
+        {active ? (
+          <Chip label={`${active.paket?.nama ?? '-'} (sisa ${active.sisa_pertemuan ?? '?'})`} size="small"
+            sx={{ bgcolor: '#dcfce7', color: '#15803d', fontWeight: 600 }} />
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <TextField select size="small" value={selectedPaket}
+              onChange={(e) => setSelectedPaket(e.target.value)}
+              sx={{ minWidth: 160 }}
+              slotProps={{ select: { displayEmpty: true } }}>
+              <MenuItem value="" disabled>Pilih Paket</MenuItem>
+              {hargaPakets.map((h) => (
+                <MenuItem key={h.paket_id} value={h.paket_id}>
+                  {h.paket?.nama} — Rp {Number(h.harga).toLocaleString('id-ID')}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Button size="small" variant="contained" disabled={!selectedPaket || createSiswaPaket.isPending}
+              onClick={handleAssign}>
+              Simpan
+            </Button>
+          </Box>
+        )}
+      </TableCell>
+      <TableCell align="center">
+        <IconButton size="small" color="error" onClick={onRemove} disabled={removing}>
+          <Delete fontSize="small" />
+        </IconButton>
+      </TableCell>
+    </TableRow>
   )
 }

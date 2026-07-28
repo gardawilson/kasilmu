@@ -12,6 +12,8 @@ class SiswaPaket extends Model
 
     protected $fillable = ['siswa_id', 'kelas_id', 'paket_id', 'tgl_mulai', 'tgl_selesai', 'status'];
 
+    protected $appends = ['sisa_pertemuan', 'hadir_count'];
+
     protected function casts(): array
     {
         return [
@@ -42,15 +44,7 @@ class SiswaPaket extends Model
 
     public function getSisaPertemuanAttribute(): int
     {
-        $hadir = DB::table('presensis')
-            ->join('pertemuans', 'presensis.pertemuan_id', '=', 'pertemuans.id')
-            ->where('presensis.siswa_id', $this->siswa_id)
-            ->where('pertemuans.kelas_id', $this->kelas_id)
-            ->whereBetween('pertemuans.tgl', [$this->tgl_mulai, $this->tgl_selesai])
-            ->where('presensis.status', 'hadir')
-            ->count();
-
-        return max(0, $this->paket->jumlah_pertemuan - $hadir);
+        return max(0, $this->paket->jumlah_pertemuan - $this->hadir_count);
     }
 
     public function getHadirCountAttribute(): int
@@ -59,7 +53,7 @@ class SiswaPaket extends Model
             ->join('pertemuans', 'presensis.pertemuan_id', '=', 'pertemuans.id')
             ->where('presensis.siswa_id', $this->siswa_id)
             ->where('pertemuans.kelas_id', $this->kelas_id)
-            ->whereBetween('pertemuans.tgl', [$this->tgl_mulai, $this->tgl_selesai])
+            ->whereBetween('pertemuans.tgl', [$this->tgl_mulai->toDateString(), $this->tgl_selesai->toDateString()])
             ->where('presensis.status', 'hadir')
             ->count();
     }

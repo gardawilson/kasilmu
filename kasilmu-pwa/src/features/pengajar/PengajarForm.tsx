@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert,
 } from '@mui/material'
 import { useForm } from 'react-hook-form'
 import { useCreatePengajar, useUpdatePengajar } from './usePengajar'
@@ -12,25 +12,35 @@ interface Props {
   editData?: Pengajar | null
 }
 
+type PengajarFormData = Partial<Pengajar> & { username?: string }
+
 export default function PengajarForm({ open, onClose, editData }: Props) {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Partial<Pengajar>>()
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<PengajarFormData>()
   const create = useCreatePengajar()
   const update = useUpdatePengajar(editData?.id || 0)
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     if (open) {
-      reset(editData ?? {
-        nip: '', nama: '', email: '', no_telp: '',
+      setSubmitError('')
+      reset(editData ? { ...editData, username: editData.user?.username ?? '' } : {
+        nama: '', username: '', email: '', no_telp: '',
         bidang_ajar: '', tarif_per_pertemuan: 0,
         pendidikan_terakhir: '',
       })
     }
   }, [open, editData, reset])
 
-  const onSubmit = (data: Partial<Pengajar>) => {
-    if (editData) update.mutate(data)
-    else create.mutate(data)
-    onClose()
+  const onSubmit = async (data: PengajarFormData) => {
+    setSubmitError('')
+    try {
+      if (editData) await update.mutateAsync(data)
+      else await create.mutateAsync(data)
+      onClose()
+    } catch (err: unknown) {
+      const msg = (err as any)?.response?.data?.message || 'Gagal menyimpan data pengajar'
+      setSubmitError(msg)
+    }
   }
 
   return (
@@ -38,14 +48,24 @@ export default function PengajarForm({ open, onClose, editData }: Props) {
       <DialogTitle>{editData ? 'Edit Pengajar' : 'Tambah Pengajar'}</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
-          <TextField label="NIP" fullWidth margin="dense" required
-            {...register('nip', { required: 'NIP wajib diisi' })}
-            error={!!errors.nip} helperText={errors.nip?.message} />
+          {submitError && <Alert severity="error" sx={{ mb: 2 }}>{submitError}</Alert>}
+          {editData && (
+            <TextField label="NIP" fullWidth margin="dense" value={editData.nip} disabled />
+          )}
           <TextField label="Nama Lengkap" fullWidth margin="dense" required
             {...register('nama', { required: 'Nama wajib diisi' })}
             error={!!errors.nama} helperText={errors.nama?.message} />
-          <TextField label="Email" type="email" fullWidth margin="dense"
-            {...register('email')} />
+          <TextField label="Username (untuk login)" fullWidth margin="dense" required
+            {...register('username', { required: 'Username wajib diisi' })}
+            error={!!errors.username} helperText={errors.username?.message} />
+          <TextField label="Email" type="email" fullWidth margin="dense" required
+            {...register('email', { required: 'Email wajib diisi' })}
+            error={!!errors.email} helperText={errors.email?.message} />
+          {!editData && (
+            <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
+              Password akun otomatis "Kasilmu1234".
+            </Alert>
+          )}
           <TextField label="No. Telepon" fullWidth margin="dense"
             {...register('no_telp')} />
           <TextField label="Bidang Ajar" fullWidth margin="dense" required

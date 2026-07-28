@@ -1,6 +1,7 @@
 export interface User {
   id: number
   name: string
+  username: string
   email: string
   no_telp: string | null
   foto: string | null
@@ -31,19 +32,23 @@ export interface Siswa {
   no_telp_ortu: string | null
   foto: string | null
   status: 'aktif' | 'nonaktif' | 'lulus'
+  kelas?: Kelas[]
+  siswa_pakets?: SiswaPaket[]
 }
 
 export interface Pengajar {
   id: number
+  user_id: number | null
   nip: string
   nama: string
-  email: string | null
+  email: string
   no_telp: string | null
   bidang_ajar: string
   tarif_per_pertemuan: number
   pendidikan_terakhir: string | null
   foto: string | null
   is_active: boolean
+  user?: { id: number; username: string; email: string; is_active: boolean } | null
 }
 
 export interface Kelas {
@@ -51,13 +56,9 @@ export interface Kelas {
   nama: string
   mata_pelajaran: string
   deskripsi: string | null
-  durasi_bulan: number
-  tutor_id: number
-  harga: number
   kapasitas: number
   ruang: string | null
   status: 'aktif' | 'selesai'
-  tutor?: Pengajar
   siswa?: Siswa[]
   siswa_count?: number
   pertemuans_count?: number
@@ -125,6 +126,14 @@ export interface Paket {
   nama: string
   jumlah_pertemuan: number
   deskripsi: string | null
+}
+
+export interface HargaPaket {
+  id: number
+  kelas_id: number
+  paket_id: number
+  harga: number
+  paket?: Paket
 }
 
 export interface SiswaPaket {

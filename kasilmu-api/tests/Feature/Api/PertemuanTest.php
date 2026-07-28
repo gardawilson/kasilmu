@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\HargaPaket;
 use App\Models\Kela;
+use App\Models\Paket;
 use App\Models\Siswa;
+use App\Models\SiswaPaket;
 use App\Models\Tutor;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
@@ -36,7 +39,7 @@ class PertemuanTest extends TestCase
     {
         $tutor = Tutor::create(['user_id' => $tutorUser->id, 'nip' => 'T001', 'nama' => 'Tutor Satu', 'bidang_ajar' => 'Matematika']);
 
-        return Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'tutor_id' => $tutor->id, 'kapasitas' => 10, 'status' => 'aktif']);
+        return Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
     }
 
     private function siswaDiKelas(Kela $kela): Siswa
@@ -47,7 +50,63 @@ class PertemuanTest extends TestCase
         ]);
         $kela->siswa()->attach($siswa->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
 
+        $paket = Paket::create(['nama' => 'Paket Test', 'jumlah_pertemuan' => 8]);
+        HargaPaket::create(['kelas_id' => $kela->id, 'paket_id' => $paket->id, 'harga' => 500000]);
+        SiswaPaket::create([
+            'siswa_id' => $siswa->id, 'kelas_id' => $kela->id, 'paket_id' => $paket->id,
+            'tgl_mulai' => now()->toDateString(), 'tgl_selesai' => now()->addMonth()->toDateString(),
+            'status' => 'aktif',
+        ]);
+
         return $siswa;
+    }
+
+    public function test_mulai_ditolak_jika_sesi_sudah_dimulai_tutor_lain()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $this->siswaDiKelas($kela);
+
+        $tutorLain = User::create(['name' => 'Tutor Lain', 'email' => 'lain2@kasilmu.com', 'username' => 'lain2', 'password' => bcrypt('password'), 'is_active' => true]);
+        $tutorLain->assignRole('tutor');
+        Tutor::create(['user_id' => $tutorLain->id, 'nip' => 'T002', 'nama' => 'Tutor Lain', 'bidang_ajar' => 'Matematika']);
+
+        $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id])->assertStatus(200);
+
+        $response = $this->actingAs($tutorLain)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('Tutor Satu', $response->json('message'));
+    }
+
+    public function test_mulai_idempoten_untuk_tutor_yang_sama()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $this->siswaDiKelas($kela);
+
+        $first = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+        $second = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+
+        $second->assertStatus(200);
+        $this->assertEquals($first->json('data.id'), $second->json('data.id'));
+    }
+
+    public function test_mulai_ditolak_jika_ada_siswa_belum_punya_paket()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+
+        $siswa = Siswa::create([
+            'nis' => '20260002', 'nama' => 'Siswa Tanpa Paket', 'tgl_lahir' => '2010-01-01',
+            'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3,
+        ]);
+        $kela->siswa()->attach($siswa->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
+
+        $response = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('pertemuans', ['kelas_id' => $kela->id]);
     }
 
     public function test_mulai_membuat_pertemuan_dan_presensi_default_hadir()

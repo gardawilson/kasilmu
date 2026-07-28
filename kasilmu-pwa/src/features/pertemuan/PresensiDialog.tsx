@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Table, TableHead, TableRow, TableCell, TableBody, ToggleButtonGroup,
-  ToggleButton, TextField, Box, Typography, Chip,
+  ToggleButton, TextField, Box, Typography, Chip, Alert,
 } from '@mui/material'
 import { CheckCircle, Cancel, Warning } from '@mui/icons-material'
 import { usePertemuanDetail, usePresensi, useStorePresensi } from './usePertemuan'
 import { useKelasDetail } from '../kelas/useKelas'
+import { useAuth } from '../auth/useAuth'
 
 const STATUS_KEHADIRAN = [
   { value: 'hadir', label: 'Hadir', icon: <CheckCircle fontSize="small" />, color: 'success' },
@@ -24,16 +25,25 @@ interface PresensiState {
 }
 
 export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
+  const isTutor = !!user?.roles?.some((r) => r.name === 'tutor')
   const { data: pertemuan } = usePertemuanDetail(pertemuanId ?? 0)
   const { data: presensi } = usePresensi(pertemuanId ?? 0)
   const { data: kelasDetail } = useKelasDetail(pertemuan?.data?.kelas_id ?? 0)
   const save = useStorePresensi(pertemuanId ?? 0)
 
+  const pertemuanTutorId = pertemuan?.data?.tutor_id
+  const isReadOnly = isTutor && !isAdmin && pertemuanTutorId !== null && pertemuanTutorId !== undefined
+    && pertemuanTutorId !== user?.tutor?.id
+
   const [dataSiswa, setDataSiswa] = useState<PresensiState>({})
   const [saved, setSaved] = useState(false)
 
-  const siswaList = kelasDetail?.data?.siswa ?? []
-  const presensiList = presensi?.data ?? []
+  const siswaListRaw = kelasDetail?.data?.siswa
+  const presensiListRaw = presensi?.data
+  const siswaList = siswaListRaw ?? []
+  const presensiList = presensiListRaw ?? []
 
   useEffect(() => {
     if (open) {
@@ -49,7 +59,8 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       }
       setDataSiswa(initial)
     }
-  }, [open, siswaList, presensiList])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, siswaListRaw, presensiListRaw])
 
   const handleSave = async () => {
     const payload = Object.entries(dataSiswa).map(([siswaId, val]) => ({
@@ -67,10 +78,15 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       <DialogTitle>
         Presensi — {pertemuan?.data?.kelas?.nama ?? ''} (Pertemuan #{pertemuan?.data?.pertemuan_ke})
         <Typography variant="caption" sx={{ display: 'block' }} color="text.secondary">
-          {pertemuan?.data?.tgl} — {pertemuan?.data?.materi}
+          Pengajar: {pertemuan?.data?.tutor?.nama ?? '—'} · {pertemuan?.data?.tgl} — {pertemuan?.data?.materi}
         </Typography>
       </DialogTitle>
       <DialogContent>
+        {isReadOnly && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Ini pertemuan milik pengajar lain — Anda hanya bisa melihat, tidak bisa mengubah presensinya.
+          </Alert>
+        )}
         {saved && (
           <Box sx={{ mb: 2, p: 1.5, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
             Presensi berhasil disimpan!
@@ -103,6 +119,7 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                   <TableCell>
                     <ToggleButtonGroup
                       size="small" color="primary" exclusive
+                      disabled={isReadOnly}
                       value={dataSiswa[siswa.id]?.status || 'hadir'}
                       onChange={(_, val) => {
                         if (val) setDataSiswa((prev) => ({
@@ -125,6 +142,7 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                   <TableCell>
                     {dataSiswa[siswa.id]?.status !== 'hadir' && (
                       <TextField size="small" placeholder="Misal: izin, sakit, alpha"
+                        disabled={isReadOnly}
                         value={dataSiswa[siswa.id]?.keterangan || ''}
                         onChange={(e) => setDataSiswa((prev) => ({
                           ...prev,
@@ -155,6 +173,7 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                   <TableCell>
                     <TextField size="small" placeholder="Misal: sudah paham perkalian, perlu latihan soal cerita"
                       multiline maxRows={2}
+                      disabled={isReadOnly}
                       value={dataSiswa[siswa.id]?.catatan || ''}
                       onChange={(e) => setDataSiswa((prev) => ({
                         ...prev,
@@ -171,9 +190,11 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Tutup</Button>
-        <Button onClick={handleSave} variant="contained" disabled={save.isPending || siswaList.length === 0}>
-          {save.isPending ? 'Menyimpan...' : 'Simpan Presensi'}
-        </Button>
+        {!isReadOnly && (
+          <Button onClick={handleSave} variant="contained" disabled={save.isPending || siswaList.length === 0}>
+            {save.isPending ? 'Menyimpan...' : 'Simpan Presensi'}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   )

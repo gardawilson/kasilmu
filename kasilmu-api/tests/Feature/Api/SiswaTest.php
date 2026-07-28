@@ -2,8 +2,9 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\HargaPaket;
 use App\Models\Kela;
-use App\Models\Tutor;
+use App\Models\Paket;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -28,21 +29,21 @@ class SiswaTest extends TestCase
 
     private function kela(): Kela
     {
-        $tutor = Tutor::create([
-            'nip' => 'T001', 'nama' => 'Tutor Test', 'bidang_ajar' => 'Matematika',
-        ]);
-
         return Kela::create([
             'nama' => 'Kelas Test', 'mata_pelajaran' => 'Matematika',
-            'tutor_id' => $tutor->id, 'kapasitas' => 10, 'status' => 'aktif',
+            'kapasitas' => 10, 'status' => 'aktif',
         ]);
     }
 
     private function siswaPayload(int $kelasId): array
     {
+        $paket = Paket::create(['nama' => 'Paket Test', 'jumlah_pertemuan' => 8]);
+
+        HargaPaket::create(['kelas_id' => $kelasId, 'paket_id' => $paket->id, 'harga' => 500000]);
+
         return [
             'nama' => 'Siswa Test', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif',
-            'jenjang' => 'SD', 'tingkat' => 3, 'kelas_id' => $kelasId,
+            'jenjang' => 'SD', 'tingkat' => 3, 'kelas_id' => $kelasId, 'paket_id' => $paket->id,
         ];
     }
 

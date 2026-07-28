@@ -48,6 +48,7 @@ export default function PengajarPage() {
           <TableHead>
             <TableRow>
               <TableCell>Pengajar</TableCell>
+              <TableCell>Akun Login</TableCell>
               <TableCell>Bidang Ajar</TableCell>
               <TableCell>Tarif / Pertemuan</TableCell>
               <TableCell>Pendidikan</TableCell>
@@ -59,14 +60,14 @@ export default function PengajarPage() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(6)].map((_, j) => (
+                  {[...Array(7)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={20} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <Box sx={{ py: 8, textAlign: 'center' }}>
                     <Inbox sx={{ fontSize: 40, color: '#cbd5e1', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Belum ada data pengajar</Typography>
@@ -86,6 +87,15 @@ export default function PengajarPage() {
                         <Typography sx={{ fontSize: 12, color: '#94a3b8' }}>{pengajar.nip}</Typography>
                       </Box>
                     </Box>
+                  </TableCell>
+                  <TableCell>
+                    {pengajar.user ? (
+                      <Chip label={pengajar.user.username} size="small"
+                        sx={{ bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 600 }} />
+                    ) : (
+                      <Chip label="Belum ada akun" size="small"
+                        sx={{ bgcolor: '#fef2f2', color: '#b91c1c', fontWeight: 600 }} />
+                    )}
                   </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{pengajar.bidang_ajar}</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>

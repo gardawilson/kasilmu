@@ -3,21 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Kela extends Model
 {
     protected $fillable = [
-        'nama', 'mata_pelajaran', 'deskripsi', 'durasi_bulan', 'tutor_id', 'harga',
+        'nama', 'mata_pelajaran', 'deskripsi',
         'kapasitas', 'ruang', 'status',
     ];
-
-    public function tutor(): BelongsTo
-    {
-        return $this->belongsTo(Tutor::class, 'tutor_id');
-    }
 
     public function siswa(): BelongsToMany
     {

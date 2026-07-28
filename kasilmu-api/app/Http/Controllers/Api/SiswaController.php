@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Siswa;
+use App\Models\SiswaPaket;
+use App\Models\Tagihan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -14,7 +17,12 @@ class SiswaController
 
     public function index(Request $request)
     {
-        $query = Siswa::with('sekolah');
+        $query = Siswa::with([
+            'sekolah',
+            'kelas:id,nama',
+            'siswaPakets' => fn ($q) => $q->where('status', 'aktif')
+                ->with(['paket:id,nama,jumlah_pertemuan', 'kelas:id,nama']),
+        ]);
 
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
@@ -57,13 +65,15 @@ class SiswaController
             'foto' => 'nullable|string|max:255',
             'status' => 'nullable|in:aktif,nonaktif,lulus',
             'kelas_id' => 'required|exists:kelas,id',
+            'paket_id' => 'required|exists:pakets,id',
         ]);
 
         $kelasId = $validated['kelas_id'];
-        unset($validated['kelas_id']);
+        $paketId = $validated['paket_id'];
+        unset($validated['kelas_id'], $validated['paket_id']);
 
         try {
-            $siswa = DB::transaction(function () use ($validated, $kelasId) {
+            $siswa = DB::transaction(function () use ($validated, $kelasId, $paketId) {
                 $validated['nis'] = $this->generateNis();
                 $siswa = Siswa::create($validated);
 
@@ -73,9 +83,34 @@ class SiswaController
                     throw new RuntimeException("Kelas sudah penuh (kapasitas {$kela->kapasitas} orang)");
                 }
 
+                $hargaPaket = HargaPaket::where('kelas_id', $kelasId)->where('paket_id', $paketId)->first();
+
+                if (! $hargaPaket) {
+                    throw new RuntimeException('Harga untuk kombinasi kelas dan paket ini belum diatur');
+                }
+
                 $kela->siswa()->attach($siswa->id, [
                     'tgl_masuk' => now()->toDateString(),
                     'status' => 'aktif',
+                ]);
+
+                $tglMulai = now()->toDateString();
+
+                SiswaPaket::create([
+                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $kelasId,
+                    'paket_id' => $paketId,
+                    'tgl_mulai' => $tglMulai,
+                    'tgl_selesai' => now()->addMonth()->toDateString(),
+                    'status' => 'aktif',
+                ]);
+
+                Tagihan::create([
+                    'siswa_id' => $siswa->id,
+                    'jenis' => 'spp',
+                    'jumlah' => $hargaPaket->harga,
+                    'tenggat' => $tglMulai,
+                    'status' => 'pending',
                 ]);
 
                 return $siswa;

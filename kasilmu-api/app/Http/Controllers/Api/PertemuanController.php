@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 class PertemuanController
 {
-    use ApiResponse;
+    use ApiResponse, TutorScope;
 
     private function isOwnPertemuan(Request $request, Pertemuan $pertemuan): bool
     {
@@ -30,21 +30,48 @@ class PertemuanController
         $validated = $request->validate([
             'kelas_id' => 'required|exists:kelas,id',
             'tgl' => 'nullable|date',
+            'tutor_id' => 'nullable|exists:tutors,id',
         ]);
 
         $kela = Kela::findOrFail($validated['kelas_id']);
         $tgl = $validated['tgl'] ?? now()->toDateString();
+        $tutorId = $request->user()->hasRole('tutor')
+            ? $request->user()->tutor?->id
+            : ($validated['tutor_id'] ?? null);
+
+        $siswaAktif = $kela->siswa()->wherePivot('status', 'aktif')->get();
+
+        $siswaTanpaPaket = $siswaAktif->reject(fn ($siswa) => SiswaPaket::where('siswa_id', $siswa->id)
+            ->where('kelas_id', $kela->id)
+            ->where('status', 'aktif')
+            ->exists());
+
+        if ($siswaTanpaPaket->isNotEmpty()) {
+            return $this->error(
+                'Tidak bisa memulai sesi, masih ada siswa yang belum memiliki paket aktif: '.$siswaTanpaPaket->pluck('nama')->implode(', '),
+                422
+            );
+        }
+
+        $existing = Pertemuan::with('tutor:id,nama')->where('kelas_id', $kela->id)->where('tgl', $tgl)->first();
+
+        if ($existing && $existing->tutor_id !== null && $existing->tutor_id !== $tutorId) {
+            $namaTutorLain = $existing->tutor?->nama ?? 'pengajar lain';
+
+            return $this->error(
+                "Sesi untuk kelas ini pada tanggal {$tgl} sudah dimulai oleh {$namaTutorLain}.",
+                422
+            );
+        }
 
         $pertemuan = Pertemuan::firstOrCreate(
             ['kelas_id' => $kela->id, 'tgl' => $tgl],
             [
                 'pertemuan_ke' => (Pertemuan::where('kelas_id', $kela->id)->max('pertemuan_ke') ?? 0) + 1,
                 'status' => 'terlaksana',
-                'tutor_id' => $request->user()->tutor?->id,
+                'tutor_id' => $tutorId,
             ]
         );
-
-        $siswaAktif = $kela->siswa()->wherePivot('status', 'aktif')->get();
 
         foreach ($siswaAktif as $siswa) {
             Presensi::firstOrCreate(
@@ -208,8 +235,14 @@ class PertemuanController
         return $this->success(null, 'Presensi berhasil disimpan');
     }
 
-    public function byKelas(Kela $kela)
+    public function byKelas(Request $request, Kela $kela)
     {
+        $kelasIds = $this->tutorKelasIds($request);
+
+        if ($kelasIds !== null && ! in_array($kela->id, $kelasIds)) {
+            return $this->error('Anda tidak memiliki akses ke kelas ini', 403);
+        }
+
         $kela->load('pertemuans.presensis.siswa:id,nama,nis');
 
         return $this->success($kela->pertemuans);

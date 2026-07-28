@@ -22,7 +22,7 @@ class AuthTest extends TestCase
     public function test_login_success()
     {
         $response = $this->postJson('/api/auth/login', [
-            'email' => 'admin@kasilmu.com',
+            'username' => 'admin',
             'password' => 'password',
         ]);
 
@@ -33,7 +33,7 @@ class AuthTest extends TestCase
     public function test_login_invalid()
     {
         $response = $this->postJson('/api/auth/login', [
-            'email' => 'wrong@email.com',
+            'username' => 'wronguser',
             'password' => 'wrongpassword',
         ]);
 

@@ -5,6 +5,8 @@ import DashboardPage from './features/dashboard/DashboardPage'
 import SiswaPage from './features/siswa/SiswaPage'
 import PengajarPage from './features/pengajar/PengajarPage'
 import KelasPage from './features/kelas/KelasPage'
+import PaketPage from './features/paket/PaketPage'
+import AkunPage from './features/akun/AkunPage'
 import SekolahPage from './features/sekolah/SekolahPage'
 import PertemuanPage from './features/pertemuan/PertemuanPage'
 import PembayaranPage from './features/pembayaran/PembayaranPage'
@@ -33,11 +35,13 @@ export default function App() {
       <Route path="/siswa" element={<ProtectedRoute><SiswaPage /></ProtectedRoute>} />
       <Route path="/pengajar" element={<ProtectedRoute><PengajarPage /></ProtectedRoute>} />
       <Route path="/kelas" element={<ProtectedRoute><KelasPage /></ProtectedRoute>} />
+      <Route path="/paket" element={<ProtectedRoute><PaketPage /></ProtectedRoute>} />
       <Route path="/sekolah" element={<ProtectedRoute><SekolahPage /></ProtectedRoute>} />
       <Route path="/presensi" element={<ProtectedRoute><PertemuanPage /></ProtectedRoute>} />
       <Route path="/pembayaran" element={<ProtectedRoute><PembayaranPage /></ProtectedRoute>} />
       <Route path="/nilai" element={<ProtectedRoute><NilaiPage /></ProtectedRoute>} />
       <Route path="/laporan" element={<ProtectedRoute><LaporanPage /></ProtectedRoute>} />
+      <Route path="/akun" element={<ProtectedRoute><AkunPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

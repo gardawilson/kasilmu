@@ -7,11 +7,17 @@ use Illuminate\Http\Request;
 
 class NilaiController
 {
-    use ApiResponse;
+    use ApiResponse, TutorScope;
 
     public function index(Request $request)
     {
         $query = Nilai::with(['siswa:id,nama,nis', 'kelas:id,nama']);
+
+        $kelasIds = $this->tutorKelasIds($request);
+
+        if ($kelasIds !== null) {
+            $query->whereIn('kelas_id', $kelasIds);
+        }
 
         if ($siswa_id = $request->siswa_id) {
             $query->where('siswa_id', $siswa_id);
@@ -43,8 +49,14 @@ class NilaiController
         return $this->success($nilai->load(['siswa:id,nama,nis', 'kelas:id,nama']), 'Nilai berhasil ditambahkan', 201);
     }
 
-    public function show(Nilai $nilai)
+    public function show(Request $request, Nilai $nilai)
     {
+        $kelasIds = $this->tutorKelasIds($request);
+
+        if ($kelasIds !== null && ! in_array($nilai->kelas_id, $kelasIds)) {
+            return $this->error('Anda tidak memiliki akses ke nilai ini', 403);
+        }
+
         $nilai->load(['siswa', 'kelas']);
 
         return $this->success($nilai);

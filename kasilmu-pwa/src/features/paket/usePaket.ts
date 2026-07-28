@@ -1,14 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
-import type { Paket, SiswaPaket, ApiResponse } from '../../types'
+import type { Paket, SiswaPaket, HargaPaket, ApiResponse } from '../../types'
 
-export function usePaketList(params: { per_page?: number } = {}) {
+export function usePaketList(params: { page?: number; per_page?: number } = {}) {
   return useQuery({
     queryKey: ['paket', params],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Paket[]>>('/paket', { params })
       return res.data
     },
+  })
+}
+
+export function useCreatePaket() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<Paket>) => api.post('/paket', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paket'] }),
+  })
+}
+
+export function useUpdatePaket(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<Paket>) => api.put(`/paket/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paket'] }),
+  })
+}
+
+export function useDeletePaket() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/paket/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paket'] }),
   })
 }
 
@@ -55,5 +79,25 @@ export function useDeleteSiswaPaket() {
   return useMutation({
     mutationFn: (id: number) => api.delete(`/siswa-paket/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['siswa-paket'] }),
+  })
+}
+
+export function useHargaPaket(kelasId: number) {
+  return useQuery({
+    queryKey: ['harga-paket', kelasId],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<HargaPaket[]>>('/harga-paket', { params: { kelas_id: kelasId } })
+      return res.data
+    },
+    enabled: !!kelasId,
+  })
+}
+
+export function useSetHargaPaket() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { kelas_id: number; paket_id: number; harga: number }) =>
+      api.post('/harga-paket', data),
+    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['harga-paket', variables.kelas_id] }),
   })
 }

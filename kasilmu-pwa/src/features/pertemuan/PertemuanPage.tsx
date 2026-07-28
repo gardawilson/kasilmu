@@ -2,11 +2,13 @@ import { useState } from 'react'
 import {
   Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
   Button, TextField, IconButton, MenuItem, Chip, Tooltip, Skeleton,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogContent, DialogActions, Alert,
 } from '@mui/material'
 import { Add, Edit, Delete, HowToReg, Inbox, PlayArrow } from '@mui/icons-material'
 import { usePertemuan, useDeletePertemuan, useMulaiPertemuan } from './usePertemuan'
 import { useKelas } from '../kelas/useKelas'
+import { usePengajar } from '../pengajar/usePengajar'
+import { useAuth } from '../auth/useAuth'
 import PertemuanForm from './PertemuanForm'
 import PresensiDialog from './PresensiDialog'
 import DeleteDialog from '../../components/ui/DeleteDialog'
@@ -21,27 +23,44 @@ function MulaiMengajarDialog({ open, onClose, onStarted }: {
   onClose: () => void
   onStarted: (pertemuanId: number) => void
 }) {
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
   const { data: kelas } = useKelas({ status: 'aktif', per_page: 100 })
+  const { data: pengajar } = usePengajar({ per_page: 100, enabled: isAdmin })
   const mulai = useMulaiPertemuan()
   const [kelasId, setKelasId] = useState('')
+  const [tutorId, setTutorId] = useState('')
   const [tgl, setTgl] = useState(today())
+  const [error, setError] = useState('')
 
   const handleClose = () => {
     setKelasId('')
+    setTutorId('')
     setTgl(today())
+    setError('')
     onClose()
   }
 
   const handleSubmit = async () => {
-    const res = await mulai.mutateAsync({ kelas_id: Number(kelasId), tgl })
-    handleClose()
-    onStarted(res.data.data.id)
+    setError('')
+    try {
+      const res = await mulai.mutateAsync({
+        kelas_id: Number(kelasId), tgl,
+        ...(isAdmin && tutorId ? { tutor_id: Number(tutorId) } : {}),
+      })
+      handleClose()
+      onStarted(res.data.data.id)
+    } catch (err: unknown) {
+      const msg = (err as any)?.response?.data?.message || 'Gagal memulai sesi'
+      setError(msg)
+    }
   }
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Mulai Mengajar</DialogTitle>
       <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField label="Kelas" fullWidth margin="dense" select required
           value={kelasId} onChange={(e) => setKelasId(e.target.value)}
           slotProps={{ select: { displayEmpty: true } }}>
@@ -50,6 +69,16 @@ function MulaiMengajarDialog({ open, onClose, onStarted }: {
             <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
           ))}
         </TextField>
+        {isAdmin && (
+          <TextField label="Pengajar" fullWidth margin="dense" select
+            value={tutorId} onChange={(e) => setTutorId(e.target.value)}
+            slotProps={{ select: { displayEmpty: true } }}>
+            <MenuItem value="">-- Belum Ditentukan --</MenuItem>
+            {pengajar?.data?.map((p) => (
+              <MenuItem key={p.id} value={p.id}>{p.nama}</MenuItem>
+            ))}
+          </TextField>
+        )}
         <TextField label="Tanggal" type="date" fullWidth margin="dense" required
           value={tgl} onChange={(e) => setTgl(e.target.value)}
           slotProps={{ inputLabel: { shrink: true } }} />
@@ -67,6 +96,10 @@ function MulaiMengajarDialog({ open, onClose, onStarted }: {
 }
 
 export default function PertemuanPage() {
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
+  const isTutor = !!user?.roles?.some((r) => r.name === 'tutor')
+  const isOwnPertemuan = (p: Pertemuan) => isAdmin || !isTutor || p.tutor_id === null || p.tutor_id === user?.tutor?.id
   const [tglFilter, setTglFilter] = useState(today())
   const [kelasFilter, setKelasFilter] = useState('')
   const [mulaiOpen, setMulaiOpen] = useState(false)
@@ -89,12 +122,16 @@ export default function PertemuanPage() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="contained" startIcon={<PlayArrow />} onClick={() => setMulaiOpen(true)}>
-            Mulai Mengajar
-          </Button>
-          <Button variant="outlined" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
-            Tambah Pertemuan
-          </Button>
+          {!isAdmin && (
+            <Button variant="contained" startIcon={<PlayArrow />} onClick={() => setMulaiOpen(true)}>
+              Mulai Mengajar
+            </Button>
+          )}
+          {isAdmin && (
+            <Button variant="outlined" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
+              Tambah Pertemuan
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -183,18 +220,24 @@ export default function PertemuanPage() {
                     </Tooltip>
                   </TableCell>
                   <TableCell align="right" sx={{ pr: 1 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => { setEditData(p); setOpen(true) }}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hapus">
-                      <IconButton size="small" onClick={() => setDeleteId(p.id)}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    {isOwnPertemuan(p) ? (
+                      <>
+                        <Tooltip title="Edit">
+                          <IconButton size="small" onClick={() => { setEditData(p); setOpen(true) }}
+                            sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Hapus">
+                          <IconButton size="small" onClick={() => setDeleteId(p.id)}
+                            sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: '#cbd5e1' }}>—</Typography>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
