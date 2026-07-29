@@ -39,8 +39,8 @@ class TutorScopeTest extends TestCase
         $kelaSendiri = Kela::create(['nama' => 'Kelas Sendiri', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
         $kelaLain = Kela::create(['nama' => 'Kelas Lain', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'status' => 'aktif']);
 
-        $siswaSendiri = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa Sendiri', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3]);
-        $siswaLain = Siswa::create(['nis' => '20260002', 'nama' => 'Siswa Lain', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3]);
+        $siswaSendiri = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa Sendiri', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
+        $siswaLain = Siswa::create(['nis' => '20260002', 'nama' => 'Siswa Lain', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
         $kelaSendiri->siswa()->attach($siswaSendiri->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
         $kelaLain->siswa()->attach($siswaLain->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
 
@@ -113,7 +113,7 @@ class TutorScopeTest extends TestCase
     public function test_tutor_bisa_lihat_detail_pertemuan_milik_tutor_lain()
     {
         $ctx = $this->tutorWithKelas();
-        $pertemuanOrangLain = \App\Models\Pertemuan::where('kelas_id', $ctx['kelaLain']->id)->first();
+        $pertemuanOrangLain = Pertemuan::where('kelas_id', $ctx['kelaLain']->id)->first();
 
         $response = $this->actingAs($ctx['tutorUser'])->getJson('/api/pertemuan/'.$pertemuanOrangLain->id);
 
@@ -164,7 +164,7 @@ class TutorScopeTest extends TestCase
 
         $response = $this->actingAs($ctx['tutorUser'])->postJson('/api/siswa', [
             'nama' => 'Siswa Baru', 'tgl_lahir' => '2010-01-01',
-            'jenjang' => 'SD', 'tingkat' => 3,
+            'jenjang_id' => $this->jenjangId(), 'tingkat_id' => $this->tingkatId(),
         ]);
 
         $response->assertStatus(403);

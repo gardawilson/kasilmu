@@ -3,11 +3,12 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   TextField, MenuItem, Alert, Autocomplete,
 } from '@mui/material'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useCreateSiswa, useUpdateSiswa } from './useSiswa'
 import { useKelas } from '../kelas/useKelas'
 import { useSekolah, useCreateSekolah } from '../sekolah/useSekolah'
 import { usePaketList, useHargaPaket } from '../paket/usePaket'
+import { useJenjang } from '../pendidikan/usePendidikan'
 import type { Siswa } from '../../types'
 
 interface Props {
@@ -16,38 +17,76 @@ interface Props {
   editData?: Siswa | null
 }
 
-type SiswaFormData = Partial<Siswa> & { kelas_id?: number; paket_id?: number }
+type SiswaFormData = Partial<Siswa> & {
+  jenjang_id?: number
+  kelas_id?: number
+  paket_id?: number
+  tgl_mulai_paket?: string
+}
 
-const TINGKAT_BY_JENJANG: Record<'SD' | 'SMP' | 'SMA', number[]> = {
-  SD: [1, 2, 3, 4, 5, 6],
-  SMP: [7, 8, 9],
-  SMA: [10, 11, 12],
+function todayLocal() {
+  const now = new Date()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+function addMonthNoOverflow(value?: string) {
+  if (!value) return ''
+  const [year, month, day] = value.split('-').map(Number)
+  const lastDayTargetMonth = new Date(year, month + 1, 0).getDate()
+  const result = new Date(year, month, Math.min(day, lastDayTargetMonth))
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${result.getFullYear()}-${pad(result.getMonth() + 1)}-${pad(result.getDate())}`
+}
+
+function formatDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 export default function SiswaForm({ open, onClose, editData }: Props) {
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<SiswaFormData>()
+  const { control, register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<SiswaFormData>()
   const create = useCreateSiswa()
   const update = useUpdateSiswa(editData?.id || 0)
   const createSekolah = useCreateSekolah()
   const [submitError, setSubmitError] = useState('')
   const [sekolahNama, setSekolahNama] = useState('')
 
-  const selectedJenjang = watch('jenjang')
+  const selectedJenjangId = watch('jenjang_id')
+  const selectedTingkatId = watch('tingkat_id')
   const selectedKelasId = watch('kelas_id')
   const selectedPaketId = watch('paket_id')
+  const selectedTanggalMulai = watch('tgl_mulai_paket')
 
-  const { data: kelasList } = useKelas({ status: 'aktif', per_page: 100 })
+  const { data: kelasList } = useKelas({ status: editData ? undefined : 'aktif', per_page: 100 })
+  const { data: jenjangList } = useJenjang(!!editData)
   const { data: sekolahList } = useSekolah()
   const { data: paketList } = usePaketList({ per_page: 100 })
   const { data: hargaPaketList } = useHargaPaket(Number(selectedKelasId) || 0)
   const selectedKelas = kelasList?.data?.find((k) => k.id === Number(selectedKelasId))
   const selectedHargaPaket = hargaPaketList?.data?.find((h) => h.paket_id === Number(selectedPaketId))
+  const selectedJenjang = jenjangList?.data?.find((j) => j.id === Number(selectedJenjangId))
+  const editPaketAktif = editData?.siswa_pakets?.[0]
+  const editKelasAktif = editData?.kelas?.find((kelas) => kelas.id === editPaketAktif?.kelas_id)
+    ?? editData?.kelas?.[0]
+  const selectedTanggalSelesai = editData
+    ? editPaketAktif?.tgl_selesai
+    : addMonthNoOverflow(selectedTanggalMulai)
 
   useEffect(() => {
     if (open) {
       setSubmitError('')
       if (editData) {
-        reset(editData)
+        reset({
+          ...editData,
+          jenjang_id: editData.tingkat?.jenjang_id,
+          kelas_id: editPaketAktif?.kelas_id ?? editKelasAktif?.id,
+          paket_id: editPaketAktif?.paket_id,
+          tgl_mulai_paket: editPaketAktif?.tgl_mulai,
+        })
         setSekolahNama(editData.sekolah?.nama || '')
       } else {
         reset({
@@ -58,16 +97,24 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
           tgl_lahir: '',
           alamat: '',
           kelas_asal: '',
-          jenjang: undefined,
-          tingkat: undefined,
+          jenjang_id: undefined,
+          tingkat_id: undefined,
           nama_ortu: '',
           no_telp_ortu: '',
           kelas_id: undefined,
+          tgl_mulai_paket: todayLocal(),
         })
         setSekolahNama('')
       }
     }
-  }, [open, editData, reset])
+  }, [open, editData, editKelasAktif?.id, editPaketAktif, reset])
+
+  useEffect(() => {
+    if (!selectedJenjang || !selectedTingkatId) return
+
+    const tersedia = selectedJenjang?.tingkats?.some((tingkat) => tingkat.id === Number(selectedTingkatId))
+    if (!tersedia) setValue('tingkat_id', undefined)
+  }, [selectedJenjang, selectedTingkatId, setValue])
 
   const onSubmit = async (data: SiswaFormData) => {
     setSubmitError('')
@@ -124,68 +171,134 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
                 helperText="Pilih dari daftar atau ketik nama sekolah baru" />
             )}
           />
-          <TextField label="Jenjang" fullWidth margin="dense" select required
-            {...register('jenjang', { required: 'Jenjang wajib dipilih' })}
-            error={!!errors.jenjang} helperText={errors.jenjang?.message}
-            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} defaultValue="">
-            <MenuItem value="" disabled>-- Pilih Jenjang --</MenuItem>
-            <MenuItem value="SD">SD</MenuItem>
-            <MenuItem value="SMP">SMP</MenuItem>
-            <MenuItem value="SMA">SMA</MenuItem>
-          </TextField>
-          <TextField label="Tingkat" fullWidth margin="dense" select required
-            disabled={!selectedJenjang}
-            {...register('tingkat', { required: 'Tingkat wajib dipilih', valueAsNumber: true })}
-            error={!!errors.tingkat} helperText={errors.tingkat?.message}
-            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} defaultValue="">
-            <MenuItem value="" disabled>-- Pilih Tingkat --</MenuItem>
-            {(TINGKAT_BY_JENJANG[selectedJenjang as 'SD' | 'SMP' | 'SMA'] ?? []).map((t) => (
-              <MenuItem key={t} value={t}>Tingkat {t}</MenuItem>
-            ))}
-          </TextField>
+          <Controller
+            name="jenjang_id"
+            control={control}
+            rules={{ required: 'Jenjang wajib dipilih' }}
+            render={({ field }) => (
+              <TextField label="Jenjang" fullWidth margin="dense" select required
+                {...field}
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(Number(event.target.value))}
+                error={!!errors.jenjang_id} helperText={errors.jenjang_id?.message}
+                slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+                <MenuItem value="" disabled>-- Pilih Jenjang --</MenuItem>
+                {jenjangList?.data?.map((jenjang) => (
+                  <MenuItem key={jenjang.id} value={jenjang.id}>
+                    {jenjang.kode} — {jenjang.nama}{jenjang.is_active ? '' : ' (Nonaktif)'}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+          <Controller
+            name="tingkat_id"
+            control={control}
+            rules={{ required: 'Tingkat wajib dipilih' }}
+            render={({ field }) => (
+              <TextField label="Tingkat" fullWidth margin="dense" select required
+                {...field}
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(Number(event.target.value))}
+                disabled={!selectedJenjangId}
+                error={!!errors.tingkat_id} helperText={errors.tingkat_id?.message}
+                slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+                <MenuItem value="" disabled>-- Pilih Tingkat --</MenuItem>
+                {(selectedJenjang?.tingkats ?? []).map((tingkat) => (
+                  <MenuItem key={tingkat.id} value={tingkat.id}>
+                    {tingkat.nama}{tingkat.is_active ? '' : ' (Nonaktif)'}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
           <TextField label="Keterangan Tambahan (opsional, misal: 6A / Jurusan IPA)" fullWidth margin="dense"
             {...register('kelas_asal')} />
           <TextField label="Nama Orang Tua" fullWidth margin="dense"
             {...register('nama_ortu')} />
           <TextField label="No. Telepon Orang Tua" fullWidth margin="dense"
             {...register('no_telp_ortu')} />
-          <TextField label="Status" fullWidth margin="dense" select
-            {...register('status')} defaultValue="aktif">
-            <MenuItem value="aktif">Aktif</MenuItem>
-            <MenuItem value="nonaktif">Nonaktif</MenuItem>
-            <MenuItem value="lulus">Lulus</MenuItem>
-          </TextField>
-          {!editData && (
-            <TextField label="Pilih Kelas" fullWidth margin="dense" select required
-              {...register('kelas_id', { required: 'Kelas wajib dipilih', valueAsNumber: true })}
-              error={!!errors.kelas_id} helperText={errors.kelas_id?.message}
-              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} defaultValue="">
-              <MenuItem value="" disabled>-- Pilih Kelas --</MenuItem>
-              {kelasList?.data?.map((k) => {
-                const penuh = (k.siswa_count ?? 0) >= k.kapasitas
-                return (
-                  <MenuItem key={k.id} value={k.id} disabled={penuh}>
-                    {k.nama} — {k.mata_pelajaran} ({k.siswa_count ?? 0}/{k.kapasitas}{penuh ? ' - Penuh' : ''})
-                  </MenuItem>
-                )
-              })}
-            </TextField>
-          )}
-          {!editData && selectedKelas && (
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <TextField label="Status" fullWidth margin="dense" select
+                {...field} value={field.value ?? 'aktif'}>
+                <MenuItem value="aktif">Aktif</MenuItem>
+                <MenuItem value="nonaktif">Nonaktif</MenuItem>
+                <MenuItem value="lulus">Lulus</MenuItem>
+              </TextField>
+            )}
+          />
+          <Controller
+            name="kelas_id"
+            control={control}
+            rules={editData ? undefined : { required: 'Kelas wajib dipilih' }}
+            render={({ field }) => (
+              <TextField label="Pilih Kelas" fullWidth margin="dense" select required={!editData}
+                {...field}
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(Number(event.target.value))}
+                disabled={!!editData}
+                error={!!errors.kelas_id}
+                helperText={editData
+                  ? 'Kelas aktif ditampilkan sebagai informasi dan dikelola melalui menu Kelas → Atur Siswa'
+                  : errors.kelas_id?.message}
+                slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+                <MenuItem value="" disabled>-- Pilih Kelas --</MenuItem>
+                {kelasList?.data?.map((k) => {
+                  const penuh = (k.siswa_count ?? 0) >= k.kapasitas
+                  return (
+                    <MenuItem key={k.id} value={k.id} disabled={!editData && penuh}>
+                      {k.nama} — {k.mata_pelajaran} ({k.siswa_count ?? 0}/{k.kapasitas}{penuh ? ' - Penuh' : ''})
+                    </MenuItem>
+                  )
+                })}
+              </TextField>
+            )}
+          />
+          {selectedKelas && (
             <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
               Kelas "{selectedKelas.nama}" — <strong>{selectedKelas.mata_pelajaran}</strong>
             </Alert>
           )}
-          {!editData && (
-            <TextField label="Pilih Paket" fullWidth margin="dense" select required
-              {...register('paket_id', { required: 'Paket wajib dipilih', valueAsNumber: true })}
-              error={!!errors.paket_id} helperText={errors.paket_id?.message}
-              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }} defaultValue="">
-              <MenuItem value="" disabled>-- Pilih Paket --</MenuItem>
-              {paketList?.data?.map((p) => (
-                <MenuItem key={p.id} value={p.id}>{p.nama} ({p.jumlah_pertemuan}x pertemuan)</MenuItem>
-              ))}
-            </TextField>
+          <Controller
+            name="paket_id"
+            control={control}
+            rules={editData ? undefined : { required: 'Paket wajib dipilih' }}
+            render={({ field }) => (
+              <TextField label="Pilih Paket" fullWidth margin="dense" select required={!editData}
+                {...field}
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(Number(event.target.value))}
+                disabled={!!editData}
+                error={!!errors.paket_id}
+                helperText={editData
+                  ? 'Paket aktif ditampilkan sebagai informasi agar tagihan dan riwayat kuota tidak berubah'
+                  : errors.paket_id?.message}
+                slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+                <MenuItem value="" disabled>-- Pilih Paket --</MenuItem>
+                {paketList?.data?.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>{p.nama} ({p.jumlah_pertemuan}x pertemuan)</MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+          <TextField label="Tanggal Mulai Paket" type="date" fullWidth margin="dense" required={!editData}
+            disabled={!!editData}
+            slotProps={{ inputLabel: { shrink: true } }}
+            {...register('tgl_mulai_paket', editData ? {} : { required: 'Tanggal mulai paket wajib diisi' })}
+            error={!!errors.tgl_mulai_paket}
+            helperText={editData
+              ? 'Tanggal periode paket aktif'
+              : errors.tgl_mulai_paket?.message || 'Isi sesuai tanggal siswa mulai mengambil paket, bukan tanggal input data'} />
+          {selectedTanggalMulai && selectedTanggalSelesai && (
+            <Alert severity="info" sx={{ mt: 1 }}>
+              {editData ? 'Periode paket aktif' : 'Periode paket'}: <strong>{formatDate(selectedTanggalMulai)}</strong>
+              {' sampai '}
+              <strong>{formatDate(selectedTanggalSelesai)}</strong>.
+              Presensi hadir dalam periode ini akan mengurangi kuota.
+            </Alert>
           )}
           {!editData && selectedKelasId && selectedPaketId && (
             selectedHargaPaket ? (

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Sekolah;
 use App\Models\Siswa;
+use App\Models\Tingkat;
 use Illuminate\Database\Seeder;
 
 class SiswaSeeder extends Seeder
@@ -24,8 +25,14 @@ class SiswaSeeder extends Seeder
         ];
 
         foreach ($siswas as $siswa) {
+            $jenjang = $siswa['jenjang'];
+            $urutanTingkat = $siswa['tingkat'];
             $siswa['sekolah_id'] = Sekolah::firstOrCreate(['nama' => $siswa['sekolah']])->id;
-            unset($siswa['sekolah']);
+            $siswa['tingkat_id'] = Tingkat::where('urutan', $urutanTingkat)
+                ->whereHas('jenjang', fn ($query) => $query->where('kode', $jenjang))
+                ->firstOrFail()
+                ->id;
+            unset($siswa['sekolah'], $siswa['jenjang'], $siswa['tingkat']);
 
             Siswa::create($siswa);
         }

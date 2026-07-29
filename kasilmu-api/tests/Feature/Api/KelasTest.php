@@ -30,7 +30,7 @@ class KelasTest extends TestCase
     {
         $kelaA = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
         $kelaB = Kela::create(['nama' => 'Kelas B', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'status' => 'aktif']);
-        $siswa = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3]);
+        $siswa = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
 
         $this->actingAs($this->auth())->postJson("/api/kelas/{$kelaA->id}/siswa", ['siswa_id' => $siswa->id])
             ->assertStatus(200);
@@ -45,7 +45,7 @@ class KelasTest extends TestCase
     {
         $kelaA = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
         $kelaB = Kela::create(['nama' => 'Kelas B', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'status' => 'aktif']);
-        $siswa = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3]);
+        $siswa = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
 
         $this->actingAs($this->auth())->postJson("/api/kelas/{$kelaA->id}/siswa", ['siswa_id' => $siswa->id]);
         $this->actingAs($this->auth())->deleteJson("/api/kelas/{$kelaA->id}/siswa/{$siswa->id}");

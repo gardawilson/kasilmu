@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Paket;
+use App\Models\SiswaPaket;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -43,7 +44,9 @@ class SiswaTest extends TestCase
 
         return [
             'nama' => 'Siswa Test', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif',
-            'jenjang' => 'SD', 'tingkat' => 3, 'kelas_id' => $kelasId, 'paket_id' => $paket->id,
+            'jenjang_id' => $this->jenjangId(), 'tingkat_id' => $this->tingkatId(),
+            'kelas_id' => $kelasId, 'paket_id' => $paket->id,
+            'tgl_mulai_paket' => now()->toDateString(),
         ];
     }
 
@@ -77,6 +80,31 @@ class SiswaTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_create_siswa_menggunakan_tanggal_mulai_paket_yang_dipilih()
+    {
+        $kela = $this->kela();
+        $payload = $this->siswaPayload($kela->id);
+        $payload['tgl_mulai_paket'] = '2026-07-13';
+
+        $response = $this->actingAs($this->auth())->postJson('/api/siswa', $payload);
+
+        $response->assertCreated();
+        $siswaId = $response->json('data.id');
+
+        $siswaPaket = SiswaPaket::where('siswa_id', $siswaId)->firstOrFail();
+        $this->assertSame('2026-07-13', $siswaPaket->tgl_mulai->toDateString());
+        $this->assertSame('2026-08-13', $siswaPaket->tgl_selesai->toDateString());
+        $this->assertDatabaseHas('kelas_siswa', [
+            'siswa_id' => $siswaId,
+            'kelas_id' => $kela->id,
+            'tgl_masuk' => '2026-07-13',
+        ]);
+        $this->assertDatabaseHas('tagihans', [
+            'siswa_id' => $siswaId,
+            'tenggat' => '2026-07-13',
+        ]);
+    }
+
     public function test_show_siswa()
     {
         $create = $this->actingAs($this->auth())->postJson('/api/siswa', $this->siswaPayload($this->kela()->id));
@@ -92,7 +120,8 @@ class SiswaTest extends TestCase
         $create = $this->actingAs($this->auth())->postJson('/api/siswa', $this->siswaPayload($this->kela()->id));
 
         $response = $this->actingAs($this->auth())->putJson('/api/siswa/'.$create->json('data.id'), [
-            'nama' => 'Updated Name', 'tgl_lahir' => '2010-01-01', 'jenjang' => 'SD', 'tingkat' => 3,
+            'nama' => 'Updated Name', 'tgl_lahir' => '2010-01-01',
+            'jenjang_id' => $this->jenjangId(), 'tingkat_id' => $this->tingkatId(),
         ]);
 
         $response->assertStatus(200)

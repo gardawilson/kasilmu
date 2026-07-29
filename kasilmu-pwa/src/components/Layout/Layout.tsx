@@ -9,6 +9,7 @@ import {
   Receipt, Logout, Group, Assessment, HowToReg, Grade,
   ChevronLeft, AccountCircle, AccountBalance, CardMembership,
   ManageAccounts,
+  AccountTree,
 } from '@mui/icons-material'
 import { useAuth } from '../../features/auth/useAuth'
 
@@ -22,6 +23,7 @@ const menu = [
   { label: 'Kelas', icon: <School fontSize="small" />, path: '/kelas', color: '#0d9488' },
   { label: 'Paket', icon: <CardMembership fontSize="small" />, path: '/paket', color: '#a855f7', hideForTutor: true },
   { label: 'Sekolah', icon: <AccountBalance fontSize="small" />, path: '/sekolah', color: '#0284c7', hideForTutor: true },
+  { label: 'Jenjang & Tingkat', icon: <AccountTree fontSize="small" />, path: '/pendidikan', color: '#2563eb', adminOnly: true },
   { label: 'Presensi', icon: <HowToReg fontSize="small" />, path: '/presensi', color: '#06b6d4' },
   { label: 'Pembayaran', icon: <Receipt fontSize="small" />, path: '/pembayaran', color: '#f97316', hideForTutor: true },
   { label: 'Nilai', icon: <Grade fontSize="small" />, path: '/nilai', color: '#ef4444' },

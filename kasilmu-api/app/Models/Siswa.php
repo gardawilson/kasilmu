@@ -11,12 +11,17 @@ class Siswa extends Model
 {
     protected $fillable = [
         'nis', 'nama', 'email', 'no_telp', 'tgl_lahir', 'alamat',
-        'sekolah_id', 'kelas_asal', 'tingkat', 'jenjang', 'nama_ortu', 'no_telp_ortu', 'foto', 'status',
+        'sekolah_id', 'kelas_asal', 'tingkat_id', 'nama_ortu', 'no_telp_ortu', 'foto', 'status',
     ];
 
     public function sekolah(): BelongsTo
     {
         return $this->belongsTo(Sekolah::class);
+    }
+
+    public function tingkat(): BelongsTo
+    {
+        return $this->belongsTo(Tingkat::class);
     }
 
     public function kelas(): BelongsToMany

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HargaPaketController;
+use App\Http\Controllers\Api\JenjangController;
 use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\NilaiController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\SekolahController;
 use App\Http\Controllers\Api\SiswaController;
 use App\Http\Controllers\Api\SiswaPaketController;
 use App\Http\Controllers\Api\TagihanController;
+use App\Http\Controllers\Api\TingkatController;
 use App\Http\Controllers\Api\TutorController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -49,7 +51,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('laporan/kehadiran', [LaporanController::class, 'kehadiran']);
         Route::get('dashboard', [DashboardController::class, 'index']);
         Route::apiResource('paket', PaketController::class);
+        Route::post('jenjang', [JenjangController::class, 'store']);
+        Route::put('jenjang/{jenjang}', [JenjangController::class, 'update']);
+        Route::delete('jenjang/{jenjang}', [JenjangController::class, 'destroy']);
+        Route::post('tingkat', [TingkatController::class, 'store']);
+        Route::put('tingkat/{tingkat}', [TingkatController::class, 'update']);
+        Route::delete('tingkat/{tingkat}', [TingkatController::class, 'destroy']);
         Route::post('siswa/{siswa}/paket', [SiswaPaketController::class, 'store']);
+        Route::post('siswa-paket/{siswaPaket}/ganti', [SiswaPaketController::class, 'gantiPaket']);
         Route::get('siswa/{siswa}/paket', [SiswaPaketController::class, 'aktif']);
         Route::put('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'update']);
         Route::delete('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'destroy']);
@@ -72,6 +81,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin|tutor|siswa|orang_tua')->group(function () {
         Route::get('siswa', [SiswaController::class, 'index']);
         Route::get('siswa/{siswa}', [SiswaController::class, 'show']);
+        Route::get('jenjang', [JenjangController::class, 'index']);
+        Route::get('jenjang/{jenjang}', [JenjangController::class, 'show']);
+        Route::get('tingkat', [TingkatController::class, 'index']);
+        Route::get('tingkat/{tingkat}', [TingkatController::class, 'show']);
         Route::get('siswa-paket', [SiswaPaketController::class, 'index']);
         Route::get('kelas', [KelasController::class, 'index']);
         Route::get('kelas/{kela}', [KelasController::class, 'show']);

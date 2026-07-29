@@ -15,6 +15,24 @@ export interface Sekolah {
   nama: string
 }
 
+export interface Jenjang {
+  id: number
+  kode: string
+  nama: string
+  urutan: number
+  is_active: boolean
+  tingkats?: Tingkat[]
+}
+
+export interface Tingkat {
+  id: number
+  jenjang_id: number
+  nama: string
+  urutan: number
+  is_active: boolean
+  jenjang?: Jenjang
+}
+
 export interface Siswa {
   id: number
   nis: string
@@ -26,8 +44,8 @@ export interface Siswa {
   sekolah_id: number | null
   sekolah?: Sekolah | null
   kelas_asal: string | null
-  tingkat: number | null
-  jenjang: 'SD' | 'SMP' | 'SMA' | null
+  tingkat_id: number | null
+  tingkat?: Tingkat | null
   nama_ortu: string | null
   no_telp_ortu: string | null
   foto: string | null
@@ -92,6 +110,7 @@ export interface Presensi {
 export interface Tagihan {
   id: number
   siswa_id: number
+  siswa_paket_id?: number | null
   jenis: 'daftar' | 'spp'
   jumlah: number
   tenggat: string | null
@@ -143,12 +162,14 @@ export interface SiswaPaket {
   paket_id: number
   tgl_mulai: string
   tgl_selesai: string
-  status: 'aktif' | 'selesai'
+  status: 'aktif' | 'terjadwal' | 'selesai'
   siswa?: Siswa
   kelas?: Kelas
   paket?: Paket
   sisa_pertemuan?: number
   hadir_count?: number
+  tagihan?: Tagihan
+  paket_berikutnya?: SiswaPaket | null
 }
 
 export interface ApiResponse<T> {

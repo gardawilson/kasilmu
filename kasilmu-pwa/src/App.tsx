@@ -8,6 +8,7 @@ import KelasPage from './features/kelas/KelasPage'
 import PaketPage from './features/paket/PaketPage'
 import AkunPage from './features/akun/AkunPage'
 import SekolahPage from './features/sekolah/SekolahPage'
+import PendidikanPage from './features/pendidikan/PendidikanPage'
 import PertemuanPage from './features/pertemuan/PertemuanPage'
 import PembayaranPage from './features/pembayaran/PembayaranPage'
 import NilaiPage from './features/nilai/NilaiPage'
@@ -37,6 +38,7 @@ export default function App() {
       <Route path="/kelas" element={<ProtectedRoute><KelasPage /></ProtectedRoute>} />
       <Route path="/paket" element={<ProtectedRoute><PaketPage /></ProtectedRoute>} />
       <Route path="/sekolah" element={<ProtectedRoute><SekolahPage /></ProtectedRoute>} />
+      <Route path="/pendidikan" element={<ProtectedRoute><PendidikanPage /></ProtectedRoute>} />
       <Route path="/presensi" element={<ProtectedRoute><PertemuanPage /></ProtectedRoute>} />
       <Route path="/pembayaran" element={<ProtectedRoute><PembayaranPage /></ProtectedRoute>} />
       <Route path="/nilai" element={<ProtectedRoute><NilaiPage /></ProtectedRoute>} />

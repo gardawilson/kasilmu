@@ -46,7 +46,7 @@ class PertemuanTest extends TestCase
     {
         $siswa = Siswa::create([
             'nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01',
-            'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3,
+            'status' => 'aktif', 'tingkat_id' => $this->tingkatId(),
         ]);
         $kela->siswa()->attach($siswa->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
 
@@ -99,7 +99,7 @@ class PertemuanTest extends TestCase
 
         $siswa = Siswa::create([
             'nis' => '20260002', 'nama' => 'Siswa Tanpa Paket', 'tgl_lahir' => '2010-01-01',
-            'status' => 'aktif', 'jenjang' => 'SD', 'tingkat' => 3,
+            'status' => 'aktif', 'tingkat_id' => $this->tingkatId(),
         ]);
         $kela->siswa()->attach($siswa->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
 

@@ -24,7 +24,10 @@ class KelasSeeder extends Seeder
 
             $kela = Kela::create($item);
 
-            $siswaSejenjang = Siswa::where('jenjang', $jenjang)->where('status', 'aktif')->get();
+            $siswaSejenjang = Siswa::whereHas(
+                'tingkat.jenjang',
+                fn ($query) => $query->where('kode', $jenjang)
+            )->where('status', 'aktif')->get();
 
             foreach ($siswaSejenjang->take($kela->kapasitas) as $siswa) {
                 $kela->siswa()->attach($siswa->id, [

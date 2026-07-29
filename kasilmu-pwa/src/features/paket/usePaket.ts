@@ -66,6 +66,17 @@ export function useCreateSiswaPaket() {
   })
 }
 
+export function useJadwalkanGantiPaket(siswaPaketId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (paket_id: number) => api.post(`/siswa-paket/${siswaPaketId}/ganti`, { paket_id }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['siswa-paket'] })
+      qc.invalidateQueries({ queryKey: ['tagihan'] })
+    },
+  })
+}
+
 export function useUpdateSiswaPaket(id: number) {
   const qc = useQueryClient()
   return useMutation({

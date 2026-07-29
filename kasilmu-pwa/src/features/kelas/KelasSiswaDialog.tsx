@@ -1,14 +1,36 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
   TextField, MenuItem, Box, Typography, Alert, Chip,
 } from '@mui/material'
-import { Delete, Add } from '@mui/icons-material'
+import { Delete, Add, SwapHoriz } from '@mui/icons-material'
 import { useKelasDetail, useAddSiswaKelas, useRemoveSiswaKelas } from './useKelas'
 import { useSiswa } from '../siswa/useSiswa'
-import { useHargaPaket, useSiswaPaketAktif, useCreateSiswaPaket } from '../paket/usePaket'
-import type { HargaPaket } from '../../types'
+import {
+  useCreateSiswaPaket, useHargaPaket, useJadwalkanGantiPaket, useSiswaPaketAktif,
+} from '../paket/usePaket'
+import type { HargaPaket, SiswaPaket } from '../../types'
+
+function todayLocal() {
+  const now = new Date()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+function addMonthNoOverflow(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+  const lastDayTargetMonth = new Date(year, month + 1, 0).getDate()
+  const result = new Date(year, month, Math.min(day, lastDayTargetMonth))
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${result.getFullYear()}-${pad(result.getMonth() + 1)}-${pad(result.getDate())}`
+}
+
+function formatDate(value: string) {
+  return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
 
 interface Props {
   open: boolean
@@ -131,6 +153,8 @@ function SiswaRow({
   const { data: aktifPaket } = useSiswaPaketAktif(siswa.id)
   const createSiswaPaket = useCreateSiswaPaket()
   const [selectedPaket, setSelectedPaket] = useState('')
+  const [tglMulai, setTglMulai] = useState(todayLocal())
+  const [gantiOpen, setGantiOpen] = useState(false)
 
   const active = aktifPaket?.data
 
@@ -140,9 +164,10 @@ function SiswaRow({
       siswa_id: siswa.id,
       kelas_id: kelasId,
       paket_id: Number(selectedPaket),
-      tgl_mulai: new Date().toISOString().slice(0, 10),
+      tgl_mulai: tglMulai,
     })
     setSelectedPaket('')
+    setTglMulai(todayLocal())
   }
 
   return (
@@ -152,8 +177,29 @@ function SiswaRow({
       <TableCell>{siswa.sekolah?.nama || '-'}</TableCell>
       <TableCell>
         {active ? (
-          <Chip label={`${active.paket?.nama ?? '-'} (sisa ${active.sisa_pertemuan ?? '?'})`} size="small"
-            sx={{ bgcolor: '#dcfce7', color: '#15803d', fontWeight: 600 }} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
+            <Chip label={`${active.paket?.nama ?? '-'} (sisa ${active.sisa_pertemuan ?? '?'})`} size="small"
+              sx={{ bgcolor: '#dcfce7', color: '#15803d', fontWeight: 600 }} />
+            <Typography variant="caption" color="text.secondary">
+              {new Date(active.tgl_mulai).toLocaleDateString('id-ID')}–{new Date(active.tgl_selesai).toLocaleDateString('id-ID')}
+            </Typography>
+            {active.paket_berikutnya ? (
+              <Alert severity="info" sx={{ py: 0, px: 1, '& .MuiAlert-message': { py: 0.5 } }}>
+                Berikutnya: <strong>{active.paket_berikutnya.paket?.nama}</strong>
+                {' mulai '}{formatDate(active.paket_berikutnya.tgl_mulai)}
+              </Alert>
+            ) : null}
+            <Button size="small" variant="outlined" startIcon={<SwapHoriz />}
+              onClick={() => setGantiOpen(true)}>
+              {active.paket_berikutnya ? 'Ubah Paket Berikutnya' : 'Ganti Paket'}
+            </Button>
+            <GantiPaketDialog
+              open={gantiOpen}
+              onClose={() => setGantiOpen(false)}
+              active={active}
+              hargaPakets={hargaPakets}
+            />
+          </Box>
         ) : (
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField select size="small" value={selectedPaket}
@@ -167,7 +213,16 @@ function SiswaRow({
                 </MenuItem>
               ))}
             </TextField>
-            <Button size="small" variant="contained" disabled={!selectedPaket || createSiswaPaket.isPending}
+            <TextField
+              label="Mulai Paket"
+              type="date"
+              size="small"
+              value={tglMulai}
+              onChange={(e) => setTglMulai(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ minWidth: 145 }}
+            />
+            <Button size="small" variant="contained" disabled={!selectedPaket || !tglMulai || createSiswaPaket.isPending}
               onClick={handleAssign}>
               Simpan
             </Button>
@@ -180,5 +235,83 @@ function SiswaRow({
         </IconButton>
       </TableCell>
     </TableRow>
+  )
+}
+
+function GantiPaketDialog({ open, onClose, active, hargaPakets }: {
+  open: boolean
+  onClose: () => void
+  active: SiswaPaket
+  hargaPakets: HargaPaket[]
+}) {
+  const jadwalkan = useJadwalkanGantiPaket(active.id)
+  const [paketId, setPaketId] = useState('')
+  const [error, setError] = useState('')
+  const paketBerikutnya = active.paket_berikutnya
+  const mulaiBerikutnya = active.tgl_selesai.slice(0, 10)
+  const selesaiBerikutnya = addMonthNoOverflow(mulaiBerikutnya)
+  const hargaTerpilih = hargaPakets.find((harga) => harga.paket_id === Number(paketId))
+
+  useEffect(() => {
+    if (!open) return
+    setPaketId(paketBerikutnya ? String(paketBerikutnya.paket_id) : '')
+    setError('')
+  }, [open, paketBerikutnya])
+
+  const handleSave = async () => {
+    if (!paketId) return
+    setError('')
+
+    try {
+      await jadwalkan.mutateAsync(Number(paketId))
+      onClose()
+    } catch (err: unknown) {
+      setError((err as any)?.response?.data?.message || 'Gagal menjadwalkan pergantian paket')
+    }
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{paketBerikutnya ? 'Ubah Paket Berikutnya' : 'Ganti Paket Periode Berikutnya'}</DialogTitle>
+      <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Paket aktif <strong>{active.paket?.nama}</strong> tetap berlaku sampai
+          {' '}<strong>{formatDate(active.tgl_selesai)}</strong>. Riwayat presensi dan sisa kuotanya tidak berubah.
+        </Alert>
+        <TextField
+          label="Paket Berikutnya"
+          select
+          fullWidth
+          required
+          value={paketId}
+          onChange={(event) => setPaketId(event.target.value)}
+          slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+        >
+          <MenuItem value="" disabled>-- Pilih Paket Baru --</MenuItem>
+          {hargaPakets
+            .filter((harga) => harga.paket_id !== active.paket_id)
+            .map((harga) => (
+              <MenuItem key={harga.paket_id} value={harga.paket_id}>
+                {harga.paket?.nama} ({harga.paket?.jumlah_pertemuan}x) — Rp {Number(harga.harga).toLocaleString('id-ID')}
+              </MenuItem>
+            ))}
+        </TextField>
+        {hargaTerpilih && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Periode baru: <strong>{formatDate(mulaiBerikutnya)}</strong> sampai
+            {' '}<strong>{formatDate(selesaiBerikutnya)}</strong><br />
+            Kuota: <strong>{hargaTerpilih.paket?.jumlah_pertemuan} pertemuan</strong><br />
+            Tagihan baru: <strong>Rp {Number(hargaTerpilih.harga).toLocaleString('id-ID')}</strong>
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Batal</Button>
+        <Button variant="contained" onClick={handleSave} disabled={!paketId || jadwalkan.isPending}>
+          {jadwalkan.isPending ? 'Menjadwalkan...' : 'Jadwalkan Pergantian'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

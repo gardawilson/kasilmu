@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 class SiswaPaket extends Model
@@ -35,6 +36,11 @@ class SiswaPaket extends Model
     public function paket(): BelongsTo
     {
         return $this->belongsTo(Paket::class);
+    }
+
+    public function tagihan(): HasOne
+    {
+        return $this->hasOne(Tagihan::class);
     }
 
     public function scopeAktif($query)

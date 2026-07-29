@@ -112,7 +112,9 @@ export default function SiswaPage() {
                   </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{siswa.sekolah?.nama || '-'}</TableCell>
                   <TableCell sx={{ color: '#475569' }}>
-                    {siswa.tingkat ? `${siswa.jenjang} - Tingkat ${siswa.tingkat}` : (siswa.kelas_asal || '-')}
+                    {siswa.tingkat
+                      ? `${siswa.tingkat.jenjang?.kode ?? '-'} - ${siswa.tingkat.nama}`
+                      : (siswa.kelas_asal || '-')}
                   </TableCell>
                   <TableCell>
                     {!siswa.kelas?.length ? (
@@ -147,9 +149,9 @@ export default function SiswaPage() {
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         {siswa.siswa_pakets.map((sp) => (
                           <Tooltip key={sp.id}
-                            title={`${sp.kelas?.nama ?? ''} — berlaku s.d. ${new Date(sp.tgl_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
+                            title={`${sp.kelas?.nama ?? ''} — periode ${new Date(sp.tgl_mulai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}–${new Date(sp.tgl_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
                             <Chip size="small"
-                              label={`${sp.sisa_pertemuan ?? '?'}/${sp.paket?.jumlah_pertemuan ?? '?'} · s.d. ${new Date(sp.tgl_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`}
+                              label={`${sp.sisa_pertemuan ?? '?'}/${sp.paket?.jumlah_pertemuan ?? '?'} · ${new Date(sp.tgl_mulai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}–${new Date(sp.tgl_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`}
                               sx={{
                                 fontWeight: 600,
                                 ...((sp.sisa_pertemuan ?? 0) <= 0

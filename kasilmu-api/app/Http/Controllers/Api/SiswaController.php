@@ -8,7 +8,9 @@ use App\Models\Siswa;
 use App\Models\SiswaPaket;
 use App\Models\Tagihan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 
 class SiswaController
@@ -19,6 +21,7 @@ class SiswaController
     {
         $query = Siswa::with([
             'sekolah',
+            'tingkat.jenjang',
             'kelas:id,nama',
             'siswaPakets' => fn ($q) => $q->where('status', 'aktif')
                 ->with(['paket:id,nama,jumlah_pertemuan', 'kelas:id,nama']),
@@ -58,22 +61,32 @@ class SiswaController
             'alamat' => 'nullable|string',
             'sekolah_id' => 'nullable|exists:sekolahs,id',
             'kelas_asal' => 'nullable|string|max:50',
-            'tingkat' => 'required|integer|between:1,12',
-            'jenjang' => 'required|in:SD,SMP,SMA',
+            'jenjang_id' => [
+                'required',
+                Rule::exists('jenjangs', 'id')->where('is_active', true),
+            ],
+            'tingkat_id' => [
+                'required',
+                Rule::exists('tingkats', 'id')->where(fn ($query) => $query
+                    ->where('jenjang_id', $request->integer('jenjang_id'))
+                    ->where('is_active', true)),
+            ],
             'nama_ortu' => 'nullable|string|max:255',
             'no_telp_ortu' => 'nullable|string|max:20',
             'foto' => 'nullable|string|max:255',
             'status' => 'nullable|in:aktif,nonaktif,lulus',
             'kelas_id' => 'required|exists:kelas,id',
             'paket_id' => 'required|exists:pakets,id',
+            'tgl_mulai_paket' => 'nullable|date',
         ]);
 
         $kelasId = $validated['kelas_id'];
         $paketId = $validated['paket_id'];
-        unset($validated['kelas_id'], $validated['paket_id']);
+        $tglMulaiPaket = Carbon::parse($validated['tgl_mulai_paket'] ?? now())->toDateString();
+        unset($validated['kelas_id'], $validated['paket_id'], $validated['jenjang_id'], $validated['tgl_mulai_paket']);
 
         try {
-            $siswa = DB::transaction(function () use ($validated, $kelasId, $paketId) {
+            $siswa = DB::transaction(function () use ($validated, $kelasId, $paketId, $tglMulaiPaket) {
                 $validated['nis'] = $this->generateNis();
                 $siswa = Siswa::create($validated);
 
@@ -90,26 +103,25 @@ class SiswaController
                 }
 
                 $kela->siswa()->attach($siswa->id, [
-                    'tgl_masuk' => now()->toDateString(),
+                    'tgl_masuk' => $tglMulaiPaket,
                     'status' => 'aktif',
                 ]);
 
-                $tglMulai = now()->toDateString();
-
-                SiswaPaket::create([
+                $siswaPaket = SiswaPaket::create([
                     'siswa_id' => $siswa->id,
                     'kelas_id' => $kelasId,
                     'paket_id' => $paketId,
-                    'tgl_mulai' => $tglMulai,
-                    'tgl_selesai' => now()->addMonth()->toDateString(),
+                    'tgl_mulai' => $tglMulaiPaket,
+                    'tgl_selesai' => Carbon::parse($tglMulaiPaket)->addMonthNoOverflow()->toDateString(),
                     'status' => 'aktif',
                 ]);
 
                 Tagihan::create([
                     'siswa_id' => $siswa->id,
+                    'siswa_paket_id' => $siswaPaket->id,
                     'jenis' => 'spp',
                     'jumlah' => $hargaPaket->harga,
-                    'tenggat' => $tglMulai,
+                    'tenggat' => $tglMulaiPaket,
                     'status' => 'pending',
                 ]);
 
@@ -119,12 +131,12 @@ class SiswaController
             return $this->error($e->getMessage(), 422);
         }
 
-        return $this->success($siswa, 'Siswa berhasil ditambahkan', 201);
+        return $this->success($siswa->load('tingkat.jenjang'), 'Siswa berhasil ditambahkan', 201);
     }
 
     public function show(Siswa $siswa)
     {
-        $siswa->load(['kelas', 'tagihans', 'nilais', 'sekolah']);
+        $siswa->load(['kelas', 'tagihans', 'nilais', 'sekolah', 'tingkat.jenjang']);
 
         return $this->success($siswa);
     }
@@ -139,17 +151,22 @@ class SiswaController
             'alamat' => 'nullable|string',
             'sekolah_id' => 'nullable|exists:sekolahs,id',
             'kelas_asal' => 'nullable|string|max:50',
-            'tingkat' => 'required|integer|between:1,12',
-            'jenjang' => 'required|in:SD,SMP,SMA',
+            'jenjang_id' => 'required|exists:jenjangs,id',
+            'tingkat_id' => [
+                'required',
+                Rule::exists('tingkats', 'id')->where(fn ($query) => $query
+                    ->where('jenjang_id', $request->integer('jenjang_id'))),
+            ],
             'nama_ortu' => 'nullable|string|max:255',
             'no_telp_ortu' => 'nullable|string|max:20',
             'foto' => 'nullable|string|max:255',
             'status' => 'nullable|in:aktif,nonaktif,lulus',
         ]);
 
+        unset($validated['jenjang_id']);
         $siswa->update($validated);
 
-        return $this->success($siswa, 'Siswa berhasil diperbarui');
+        return $this->success($siswa->load('tingkat.jenjang'), 'Siswa berhasil diperbarui');
     }
 
     public function destroy(Siswa $siswa)

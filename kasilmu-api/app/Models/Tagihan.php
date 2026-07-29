@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tagihan extends Model
 {
-    protected $fillable = ['siswa_id', 'jenis', 'jumlah', 'tenggat', 'status'];
+    protected $fillable = ['siswa_id', 'siswa_paket_id', 'jenis', 'jumlah', 'tenggat', 'status'];
 
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class);
+    }
+
+    public function siswaPaket(): BelongsTo
+    {
+        return $this->belongsTo(SiswaPaket::class);
     }
 
     public function pembayarans(): HasMany
