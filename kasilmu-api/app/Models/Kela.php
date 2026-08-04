@@ -10,7 +10,7 @@ class Kela extends Model
 {
     protected $fillable = [
         'nama', 'mata_pelajaran', 'deskripsi',
-        'kapasitas', 'ruang', 'status',
+        'kapasitas', 'tarif_per_pertemuan', 'ruang', 'status',
     ];
 
     public function siswa(): BelongsToMany

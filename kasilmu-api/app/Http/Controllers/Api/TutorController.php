@@ -47,7 +47,6 @@ class TutorController
             'password' => 'nullable|string|min:6',
             'no_telp' => 'nullable|string|max:20',
             'bidang_ajar' => 'required|string|max:255',
-            'tarif_per_pertemuan' => 'required|numeric|min:0',
             'pendidikan_terakhir' => 'nullable|string|max:100',
             'foto' => 'nullable|string|max:255',
         ]);
@@ -92,7 +91,6 @@ class TutorController
             'password' => 'nullable|string|min:6',
             'no_telp' => 'nullable|string|max:20',
             'bidang_ajar' => 'required|string|max:255',
-            'tarif_per_pertemuan' => 'required|numeric|min:0',
             'pendidikan_terakhir' => 'nullable|string|max:100',
             'foto' => 'nullable|string|max:255',
         ]);

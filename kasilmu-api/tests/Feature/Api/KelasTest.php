@@ -28,8 +28,8 @@ class KelasTest extends TestCase
 
     public function test_siswa_tidak_bisa_aktif_di_dua_kelas_sekaligus()
     {
-        $kelaA = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
-        $kelaB = Kela::create(['nama' => 'Kelas B', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'status' => 'aktif']);
+        $kelaA = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'tarif_per_pertemuan' => 100000, 'status' => 'aktif']);
+        $kelaB = Kela::create(['nama' => 'Kelas B', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'tarif_per_pertemuan' => 100000, 'status' => 'aktif']);
         $siswa = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
 
         $this->actingAs($this->auth())->postJson("/api/kelas/{$kelaA->id}/siswa", ['siswa_id' => $siswa->id])
@@ -43,8 +43,8 @@ class KelasTest extends TestCase
 
     public function test_siswa_bisa_pindah_kelas_setelah_dikeluarkan_dari_kelas_lama()
     {
-        $kelaA = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
-        $kelaB = Kela::create(['nama' => 'Kelas B', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'status' => 'aktif']);
+        $kelaA = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'tarif_per_pertemuan' => 100000, 'status' => 'aktif']);
+        $kelaB = Kela::create(['nama' => 'Kelas B', 'mata_pelajaran' => 'Fisika', 'kapasitas' => 10, 'tarif_per_pertemuan' => 100000, 'status' => 'aktif']);
         $siswa = Siswa::create(['nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
 
         $this->actingAs($this->auth())->postJson("/api/kelas/{$kelaA->id}/siswa", ['siswa_id' => $siswa->id]);

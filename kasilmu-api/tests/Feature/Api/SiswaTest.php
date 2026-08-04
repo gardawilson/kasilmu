@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Paket;
+use App\Models\Siswa;
 use App\Models\SiswaPaket;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
@@ -126,6 +127,36 @@ class SiswaTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('data.nama', 'Updated Name');
+    }
+
+    public function test_filter_belum_berkelas_menyembunyikan_siswa_yang_sudah_di_kelas_atau_punya_paket()
+    {
+        $kela = $this->kela();
+        $this->actingAs($this->auth())->postJson('/api/siswa', $this->siswaPayload($kela->id));
+
+        $siswaTerjadwal = Siswa::create([
+            'nis' => '20260099', 'nama' => 'Siswa Terjadwal', 'tgl_lahir' => '2010-01-01',
+            'status' => 'aktif', 'tingkat_id' => $this->tingkatId(),
+        ]);
+        $paket = Paket::create(['nama' => 'Paket Lain', 'jumlah_pertemuan' => 8]);
+        SiswaPaket::create([
+            'siswa_id' => $siswaTerjadwal->id, 'kelas_id' => $kela->id, 'paket_id' => $paket->id,
+            'tgl_mulai' => now()->addMonth()->toDateString(), 'tgl_selesai' => now()->addMonths(2)->toDateString(),
+            'status' => 'terjadwal',
+        ]);
+
+        $siswaBebas = Siswa::create([
+            'nis' => '20260098', 'nama' => 'Siswa Bebas', 'tgl_lahir' => '2010-01-01',
+            'status' => 'aktif', 'tingkat_id' => $this->tingkatId(),
+        ]);
+
+        $response = $this->actingAs($this->auth())->getJson('/api/siswa?belum_berkelas=1&per_page=50');
+
+        $response->assertStatus(200);
+        $namaList = collect($response->json('data'))->pluck('nama');
+        $this->assertTrue($namaList->contains('Siswa Bebas'));
+        $this->assertFalse($namaList->contains('Siswa Test'));
+        $this->assertFalse($namaList->contains('Siswa Terjadwal'));
     }
 
     public function test_delete_siswa()

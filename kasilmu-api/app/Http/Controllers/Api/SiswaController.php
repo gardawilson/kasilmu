@@ -39,6 +39,11 @@ class SiswaController
             $query->where('status', $status);
         }
 
+        if ($request->boolean('belum_berkelas')) {
+            $query->whereDoesntHave('kelas', fn ($q) => $q->where('kelas_siswa.status', 'aktif'))
+                ->whereDoesntHave('siswaPakets', fn ($q) => $q->whereIn('status', ['aktif', 'terjadwal']));
+        }
+
         return $this->paginated($query->latest()->paginate($request->per_page ?? 10));
     }
 

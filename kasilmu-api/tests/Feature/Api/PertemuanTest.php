@@ -206,6 +206,103 @@ class PertemuanTest extends TestCase
         ]);
     }
 
+    public function test_mulai_membuat_pertemuan_berstatus_berlangsung()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $this->siswaDiKelas($kela);
+
+        $response = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+
+        $response->assertStatus(200)->assertJsonPath('data.status', 'berlangsung');
+    }
+
+    public function test_tutor_bisa_menandai_pertemuan_selesai()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $this->siswaDiKelas($kela);
+
+        $mulai = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+        $pertemuanId = $mulai->json('data.id');
+
+        $response = $this->actingAs($tutorUser)->postJson("/api/pertemuan/{$pertemuanId}/selesai");
+
+        $response->assertStatus(200)->assertJsonPath('data.status', 'selesai');
+    }
+
+    public function test_pertemuan_yang_sudah_selesai_tidak_bisa_ditandai_selesai_lagi()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+        $this->siswaDiKelas($kela);
+
+        $mulai = $this->actingAs($tutorUser)->postJson('/api/pertemuan/mulai', ['kelas_id' => $kela->id]);
+        $pertemuanId = $mulai->json('data.id');
+        $this->actingAs($tutorUser)->postJson("/api/pertemuan/{$pertemuanId}/selesai");
+
+        $response = $this->actingAs($tutorUser)->postJson("/api/pertemuan/{$pertemuanId}/selesai");
+
+        $response->assertStatus(422);
+    }
+
+    public function test_pertemuan_ke_dihitung_otomatis_saat_tambah_manual_bukan_dari_input()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+
+        $pertama = $this->actingAs($this->admin())->postJson('/api/pertemuan', [
+            'kelas_id' => $kela->id, 'pertemuan_ke' => 99, 'tgl' => now()->toDateString(), 'status' => 'selesai',
+        ]);
+        $kedua = $this->actingAs($this->admin())->postJson('/api/pertemuan', [
+            'kelas_id' => $kela->id, 'tgl' => now()->addDay()->toDateString(), 'status' => 'selesai',
+        ]);
+
+        // pertemuan_ke yang dikirim client (99) diabaikan — tetap dihitung otomatis dari urutan
+        $pertama->assertStatus(201)->assertJsonPath('data.pertemuan_ke', 1);
+        $kedua->assertStatus(201)->assertJsonPath('data.pertemuan_ke', 2);
+    }
+
+    public function test_edit_pertemuan_tidak_mengubah_pertemuan_ke_kalau_kelas_tidak_berubah()
+    {
+        $tutorUser = $this->tutorUser();
+        $kela = $this->kelaWithTutor($tutorUser);
+
+        $created = $this->actingAs($this->admin())->postJson('/api/pertemuan', [
+            'kelas_id' => $kela->id, 'tgl' => now()->toDateString(), 'status' => 'selesai',
+        ]);
+
+        $response = $this->actingAs($this->admin())->putJson("/api/pertemuan/{$created->json('data.id')}", [
+            'kelas_id' => $kela->id, 'tgl' => now()->toDateString(), 'materi' => 'Update', 'status' => 'selesai',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.materi', 'Update')
+            ->assertJsonPath('data.pertemuan_ke', $created->json('data.pertemuan_ke'));
+    }
+
+    public function test_edit_pertemuan_menghitung_ulang_pertemuan_ke_kalau_pindah_kelas()
+    {
+        $tutorUser = $this->tutorUser();
+        $kelaAsal = $this->kelaWithTutor($tutorUser);
+        $kelaTujuan = Kela::create(['nama' => 'Kelas Tujuan', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
+
+        // Kelas tujuan sudah punya 1 pertemuan, jadi pertemuan yang dipindah harusnya jadi nomor 2
+        $this->actingAs($this->admin())->postJson('/api/pertemuan', [
+            'kelas_id' => $kelaTujuan->id, 'tgl' => now()->toDateString(), 'status' => 'selesai',
+        ]);
+
+        $created = $this->actingAs($this->admin())->postJson('/api/pertemuan', [
+            'kelas_id' => $kelaAsal->id, 'tgl' => now()->toDateString(), 'status' => 'selesai',
+        ]);
+
+        $response = $this->actingAs($this->admin())->putJson("/api/pertemuan/{$created->json('data.id')}", [
+            'kelas_id' => $kelaTujuan->id, 'tgl' => now()->toDateString(), 'status' => 'selesai',
+        ]);
+
+        $response->assertStatus(200)->assertJsonPath('data.pertemuan_ke', 2);
+    }
+
     public function test_jadwal_hari_ini_scoped_ke_tutor()
     {
         $tutorUser = $this->tutorUser();

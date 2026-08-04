@@ -129,11 +129,12 @@ class SiswaPaketController
     public function gantiPaket(Request $request, SiswaPaket $siswaPaket)
     {
         if ($siswaPaket->status !== 'aktif') {
-            return $this->error('Penggantian hanya dapat dijadwalkan dari paket yang sedang aktif', 422);
+            return $this->error('Penggantian hanya dapat dilakukan dari paket yang sedang aktif', 422);
         }
 
         $validated = $request->validate([
             'paket_id' => 'required|exists:pakets,id',
+            'tgl_mulai' => 'nullable|date',
         ]);
 
         if ((int) $validated['paket_id'] === $siswaPaket->paket_id) {
@@ -148,63 +149,63 @@ class SiswaPaketController
             return $this->error('Harga untuk kombinasi kelas dan paket ini belum diatur', 422);
         }
 
-        $tglMulai = $siswaPaket->tgl_selesai->toDateString();
+        $tglMulai = $validated['tgl_mulai'] ?? now()->toDateString();
+
+        if (Carbon::parse($tglMulai)->lt($siswaPaket->tgl_mulai)) {
+            return $this->error('Tanggal mulai paket baru tidak boleh sebelum tanggal mulai paket yang sedang aktif', 422);
+        }
+
+        if (Carbon::parse($tglMulai)->gt(now())) {
+            return $this->error('Tanggal mulai paket baru tidak boleh di masa depan', 422);
+        }
+
         $tglSelesai = Carbon::parse($tglMulai)->addMonthNoOverflow()->toDateString();
 
         try {
-            $paketBerikutnya = DB::transaction(function () use (
-                $siswaPaket,
-                $validated,
-                $hargaPaket,
-                $tglMulai,
-                $tglSelesai
-            ) {
-                $paketBerikutnya = SiswaPaket::where('siswa_id', $siswaPaket->siswa_id)
+            $paketBaru = DB::transaction(function () use ($siswaPaket, $validated, $hargaPaket, $tglMulai, $tglSelesai) {
+                $terjadwal = SiswaPaket::where('siswa_id', $siswaPaket->siswa_id)
                     ->where('kelas_id', $siswaPaket->kelas_id)
                     ->where('status', 'terjadwal')
                     ->first();
 
-                if ($paketBerikutnya?->tagihan?->pembayarans()->exists()) {
-                    throw new RuntimeException('Paket berikutnya tidak dapat diubah karena tagihannya sudah memiliki pembayaran');
+                if ($terjadwal) {
+                    if ($terjadwal->tagihan?->pembayarans()->exists()) {
+                        throw new RuntimeException('Tidak dapat mengganti paket karena tagihan periode berikutnya sudah memiliki pembayaran');
+                    }
+
+                    $terjadwal->tagihan()->delete();
+                    $terjadwal->delete();
                 }
 
-                if ($paketBerikutnya) {
-                    $paketBerikutnya->update([
-                        'paket_id' => $validated['paket_id'],
-                        'tgl_mulai' => $tglMulai,
-                        'tgl_selesai' => $tglSelesai,
-                    ]);
-                } else {
-                    $paketBerikutnya = SiswaPaket::create([
-                        'siswa_id' => $siswaPaket->siswa_id,
-                        'kelas_id' => $siswaPaket->kelas_id,
-                        'paket_id' => $validated['paket_id'],
-                        'tgl_mulai' => $tglMulai,
-                        'tgl_selesai' => $tglSelesai,
-                        'status' => 'terjadwal',
-                    ]);
-                }
+                $siswaPaket->update(['tgl_selesai' => $tglMulai, 'status' => 'selesai']);
 
-                Tagihan::updateOrCreate(
-                    ['siswa_paket_id' => $paketBerikutnya->id],
-                    [
-                        'siswa_id' => $siswaPaket->siswa_id,
-                        'jenis' => 'spp',
-                        'jumlah' => $hargaPaket->harga,
-                        'tenggat' => $tglMulai,
-                        'status' => 'pending',
-                    ]
-                );
+                $paketBaru = SiswaPaket::create([
+                    'siswa_id' => $siswaPaket->siswa_id,
+                    'kelas_id' => $siswaPaket->kelas_id,
+                    'paket_id' => $validated['paket_id'],
+                    'tgl_mulai' => $tglMulai,
+                    'tgl_selesai' => $tglSelesai,
+                    'status' => 'aktif',
+                ]);
 
-                return $paketBerikutnya;
+                Tagihan::create([
+                    'siswa_id' => $siswaPaket->siswa_id,
+                    'siswa_paket_id' => $paketBaru->id,
+                    'jenis' => 'spp',
+                    'jumlah' => $hargaPaket->harga,
+                    'tenggat' => $tglMulai,
+                    'status' => 'pending',
+                ]);
+
+                return $paketBaru;
             });
         } catch (RuntimeException $e) {
             return $this->error($e->getMessage(), 422);
         }
 
         return $this->success(
-            $paketBerikutnya->load(['paket:id,nama,jumlah_pertemuan', 'kelas:id,nama', 'tagihan']),
-            'Pergantian paket berhasil dijadwalkan'
+            $paketBaru->load(['paket:id,nama,jumlah_pertemuan', 'kelas:id,nama', 'tagihan']),
+            'Paket siswa berhasil diganti'
         );
     }
 
@@ -229,6 +230,11 @@ class SiswaPaketController
 
     public function destroy(SiswaPaket $siswaPaket)
     {
+        if ($siswaPaket->tagihan?->pembayarans()->exists()) {
+            return $this->error('Paket tidak dapat dihapus karena tagihannya sudah memiliki pembayaran', 422);
+        }
+
+        $siswaPaket->tagihan()->delete();
         $siswaPaket->delete();
 
         return $this->success(null, 'Paket siswa berhasil dihapus');

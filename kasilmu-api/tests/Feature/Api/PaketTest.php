@@ -174,9 +174,10 @@ class PaketTest extends TestCase
         ]);
     }
 
-    public function test_ganti_paket_dijadwalkan_untuk_periode_berikutnya()
+    public function test_ganti_paket_langsung_aktif_hari_ini()
     {
         $context = $this->paketAktifContext();
+        $this->travelTo(Carbon::parse('2026-07-20 10:00:00'));
 
         $response = $this->actingAs($this->auth())
             ->postJson("/api/siswa-paket/{$context['siswaPaket']->id}/ganti", [
@@ -184,24 +185,83 @@ class PaketTest extends TestCase
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.status', 'terjadwal')
+            ->assertJsonPath('data.status', 'aktif')
             ->assertJsonPath('data.paket_id', $context['paketBaru']->id);
 
         $context['siswaPaket']->refresh();
-        $this->assertSame('aktif', $context['siswaPaket']->status);
+        $this->assertSame('selesai', $context['siswaPaket']->status);
+        $this->assertSame('2026-07-20', $context['siswaPaket']->tgl_selesai->toDateString());
 
-        $terjadwal = SiswaPaket::where('status', 'terjadwal')->firstOrFail();
-        $this->assertSame('2026-08-13', $terjadwal->tgl_mulai->toDateString());
-        $this->assertSame('2026-09-13', $terjadwal->tgl_selesai->toDateString());
+        $paketBaru = SiswaPaket::where('paket_id', $context['paketBaru']->id)->firstOrFail();
+        $this->assertSame('aktif', $paketBaru->status);
+        $this->assertSame('2026-07-20', $paketBaru->tgl_mulai->toDateString());
+        $this->assertSame('2026-08-20', $paketBaru->tgl_selesai->toDateString());
         $this->assertDatabaseHas('tagihans', [
             'siswa_id' => $context['siswa']->id,
-            'siswa_paket_id' => $terjadwal->id,
+            'siswa_paket_id' => $paketBaru->id,
             'jumlah' => 650000,
             'status' => 'pending',
         ]);
     }
 
-    public function test_mengubah_paket_berikutnya_tidak_membuat_data_ganda()
+    public function test_ganti_paket_bisa_backdate()
+    {
+        $context = $this->paketAktifContext();
+        $this->travelTo(Carbon::parse('2026-07-20 10:00:00'));
+
+        $response = $this->actingAs($this->auth())
+            ->postJson("/api/siswa-paket/{$context['siswaPaket']->id}/ganti", [
+                'paket_id' => $context['paketBaru']->id,
+                'tgl_mulai' => '2026-07-15',
+            ]);
+
+        $response->assertOk()->assertJsonPath('data.status', 'aktif');
+
+        $context['siswaPaket']->refresh();
+        $this->assertSame('2026-07-15', $context['siswaPaket']->tgl_selesai->toDateString());
+
+        $paketBaru = SiswaPaket::where('paket_id', $context['paketBaru']->id)->firstOrFail();
+        $this->assertSame('2026-07-15', $paketBaru->tgl_mulai->toDateString());
+        $this->assertSame('2026-08-15', $paketBaru->tgl_selesai->toDateString());
+        $this->assertDatabaseHas('tagihans', [
+            'siswa_paket_id' => $paketBaru->id,
+            'tenggat' => '2026-07-15',
+        ]);
+    }
+
+    public function test_ganti_paket_backdate_ditolak_jika_sebelum_mulai_paket_aktif()
+    {
+        $context = $this->paketAktifContext();
+        $this->travelTo(Carbon::parse('2026-07-20 10:00:00'));
+
+        $response = $this->actingAs($this->auth())
+            ->postJson("/api/siswa-paket/{$context['siswaPaket']->id}/ganti", [
+                'paket_id' => $context['paketBaru']->id,
+                'tgl_mulai' => '2026-07-01',
+            ]);
+
+        $response->assertStatus(422);
+        $context['siswaPaket']->refresh();
+        $this->assertSame('aktif', $context['siswaPaket']->status);
+    }
+
+    public function test_ganti_paket_ditolak_jika_tanggal_di_masa_depan()
+    {
+        $context = $this->paketAktifContext();
+        $this->travelTo(Carbon::parse('2026-07-20 10:00:00'));
+
+        $response = $this->actingAs($this->auth())
+            ->postJson("/api/siswa-paket/{$context['siswaPaket']->id}/ganti", [
+                'paket_id' => $context['paketBaru']->id,
+                'tgl_mulai' => '2026-07-21',
+            ]);
+
+        $response->assertStatus(422);
+        $context['siswaPaket']->refresh();
+        $this->assertSame('aktif', $context['siswaPaket']->status);
+    }
+
+    public function test_ganti_paket_membatalkan_paket_terjadwal_yang_belum_dibayar()
     {
         $context = $this->paketAktifContext();
         $paketLain = Paket::create(['nama' => 'Paket 20x', 'jumlah_pertemuan' => 20]);
@@ -210,39 +270,111 @@ class PaketTest extends TestCase
             'paket_id' => $paketLain->id,
             'harga' => 800000,
         ]);
+        $terjadwal = SiswaPaket::create([
+            'siswa_id' => $context['siswa']->id,
+            'kelas_id' => $context['kela']->id,
+            'paket_id' => $paketLain->id,
+            'tgl_mulai' => '2026-08-13',
+            'tgl_selesai' => '2026-09-13',
+            'status' => 'terjadwal',
+        ]);
+        Tagihan::create([
+            'siswa_id' => $context['siswa']->id,
+            'siswa_paket_id' => $terjadwal->id,
+            'jenis' => 'spp',
+            'jumlah' => 800000,
+            'tenggat' => '2026-08-13',
+            'status' => 'pending',
+        ]);
 
-        $url = "/api/siswa-paket/{$context['siswaPaket']->id}/ganti";
-        $this->actingAs($this->auth())->postJson($url, ['paket_id' => $context['paketBaru']->id])->assertOk();
-        $this->actingAs($this->auth())->postJson($url, ['paket_id' => $paketLain->id])->assertOk();
-
-        $this->assertSame(1, SiswaPaket::where('status', 'terjadwal')->count());
-        $terjadwal = SiswaPaket::where('status', 'terjadwal')->firstOrFail();
-        $this->assertSame($paketLain->id, $terjadwal->paket_id);
-        $this->assertSame(1, Tagihan::where('siswa_paket_id', $terjadwal->id)->count());
-        $this->assertSame(800000.0, (float) $terjadwal->tagihan->jumlah);
-    }
-
-    public function test_scheduler_mengaktifkan_paket_yang_sudah_terjadwal()
-    {
-        $context = $this->paketAktifContext();
         $this->actingAs($this->auth())
             ->postJson("/api/siswa-paket/{$context['siswaPaket']->id}/ganti", [
                 'paket_id' => $context['paketBaru']->id,
-            ])
-            ->assertOk();
+            ])->assertOk();
 
-        $this->travelTo(Carbon::parse('2026-08-13 01:00:00'));
-        $this->artisan('tagihan:generate')->assertSuccessful();
+        $this->assertDatabaseMissing('siswa_pakets', ['id' => $terjadwal->id]);
+        $this->assertDatabaseMissing('tagihans', ['siswa_paket_id' => $terjadwal->id]);
+    }
 
-        $this->assertDatabaseHas('siswa_pakets', [
-            'id' => $context['siswaPaket']->id,
-            'status' => 'selesai',
-        ]);
-        $this->assertDatabaseHas('siswa_pakets', [
+    public function test_ganti_paket_ditolak_jika_paket_terjadwal_sudah_dibayar()
+    {
+        $context = $this->paketAktifContext();
+        $terjadwal = SiswaPaket::create([
+            'siswa_id' => $context['siswa']->id,
+            'kelas_id' => $context['kela']->id,
             'paket_id' => $context['paketBaru']->id,
-            'status' => 'aktif',
+            'tgl_mulai' => '2026-08-13',
+            'tgl_selesai' => '2026-09-13',
+            'status' => 'terjadwal',
         ]);
-        $this->assertSame(1, Tagihan::count());
+        $tagihan = Tagihan::create([
+            'siswa_id' => $context['siswa']->id,
+            'siswa_paket_id' => $terjadwal->id,
+            'jenis' => 'spp',
+            'jumlah' => 650000,
+            'tenggat' => '2026-08-13',
+            'status' => 'lunas',
+        ]);
+        $tagihan->pembayarans()->create([
+            'jumlah' => 650000,
+            'tgl_bayar' => now()->toDateString(),
+            'metode' => 'tunai',
+        ]);
+
+        $response = $this->actingAs($this->auth())
+            ->postJson("/api/siswa-paket/{$context['siswaPaket']->id}/ganti", [
+                'paket_id' => $context['paketBaru']->id,
+            ]);
+
+        $response->assertStatus(422);
+        $context['siswaPaket']->refresh();
+        $this->assertSame('aktif', $context['siswaPaket']->status);
+        $this->assertDatabaseHas('siswa_pakets', ['id' => $terjadwal->id]);
+    }
+
+    public function test_hapus_siswa_paket_menghapus_tagihannya()
+    {
+        $context = $this->paketAktifContext();
+        $tagihanId = Tagihan::create([
+            'siswa_id' => $context['siswa']->id,
+            'siswa_paket_id' => $context['siswaPaket']->id,
+            'jenis' => 'spp',
+            'jumlah' => 500000,
+            'tenggat' => '2026-07-13',
+            'status' => 'pending',
+        ])->id;
+
+        $response = $this->actingAs($this->auth())
+            ->deleteJson("/api/siswa-paket/{$context['siswaPaket']->id}");
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('siswa_pakets', ['id' => $context['siswaPaket']->id]);
+        $this->assertDatabaseMissing('tagihans', ['id' => $tagihanId]);
+    }
+
+    public function test_hapus_siswa_paket_ditolak_jika_tagihan_sudah_dibayar()
+    {
+        $context = $this->paketAktifContext();
+        $tagihan = Tagihan::create([
+            'siswa_id' => $context['siswa']->id,
+            'siswa_paket_id' => $context['siswaPaket']->id,
+            'jenis' => 'spp',
+            'jumlah' => 500000,
+            'tenggat' => '2026-07-13',
+            'status' => 'lunas',
+        ]);
+        $tagihan->pembayarans()->create([
+            'jumlah' => 500000,
+            'tgl_bayar' => now()->toDateString(),
+            'metode' => 'tunai',
+        ]);
+
+        $response = $this->actingAs($this->auth())
+            ->deleteJson("/api/siswa-paket/{$context['siswaPaket']->id}");
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('siswa_pakets', ['id' => $context['siswaPaket']->id]);
+        $this->assertDatabaseHas('tagihans', ['id' => $tagihan->id]);
     }
 
     public function test_scheduler_tetap_memperpanjang_paket_lama_jika_tidak_ada_pergantian()

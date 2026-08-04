@@ -25,6 +25,18 @@ class PertemuanController
         return $pertemuan->tutor_id === $request->user()->tutor?->id;
     }
 
+    /**
+     * pertemuan_ke selalu dihitung otomatis, tidak pernah diterima dari input
+     * client — supaya nomornya benar-benar jadi penanda urutan, bukan angka
+     * bebas yang bisa salah ketik/duplikat. Constraint unik (kelas_id,
+     * pertemuan_ke) di database jadi jaring pengaman kalau ada request
+     * bersamaan yang menghitung nomor yang sama.
+     */
+    private function nextPertemuanKe(int $kelasId): int
+    {
+        return (Pertemuan::where('kelas_id', $kelasId)->max('pertemuan_ke') ?? 0) + 1;
+    }
+
     public function mulai(Request $request)
     {
         $validated = $request->validate([
@@ -67,9 +79,10 @@ class PertemuanController
         $pertemuan = Pertemuan::firstOrCreate(
             ['kelas_id' => $kela->id, 'tgl' => $tgl],
             [
-                'pertemuan_ke' => (Pertemuan::where('kelas_id', $kela->id)->max('pertemuan_ke') ?? 0) + 1,
-                'status' => 'terlaksana',
+                'pertemuan_ke' => $this->nextPertemuanKe($kela->id),
+                'status' => 'berlangsung',
                 'tutor_id' => $tutorId,
+                'tarif_per_pertemuan' => $kela->tarif_per_pertemuan,
             ]
         );
 
@@ -115,16 +128,18 @@ class PertemuanController
     {
         $validated = $request->validate([
             'kelas_id' => 'required|exists:kelas,id',
-            'pertemuan_ke' => 'required|integer|min:1',
             'tgl' => 'required|date',
             'materi' => 'nullable|string',
-            'status' => 'nullable|in:terlaksana,libur',
+            'status' => 'nullable|in:berlangsung,selesai,libur',
             'tutor_id' => 'nullable|exists:tutors,id',
         ]);
 
         $validated['tutor_id'] = $request->user()->hasRole('tutor')
             ? $request->user()->tutor?->id
             : ($validated['tutor_id'] ?? null);
+
+        $validated['tarif_per_pertemuan'] = Kela::findOrFail($validated['kelas_id'])->tarif_per_pertemuan;
+        $validated['pertemuan_ke'] = $this->nextPertemuanKe($validated['kelas_id']);
 
         $pertemuan = Pertemuan::create($validated);
 
@@ -153,10 +168,9 @@ class PertemuanController
     {
         $validated = $request->validate([
             'kelas_id' => 'required|exists:kelas,id',
-            'pertemuan_ke' => 'required|integer|min:1',
             'tgl' => 'required|date',
             'materi' => 'nullable|string',
-            'status' => 'nullable|in:terlaksana,libur',
+            'status' => 'nullable|in:berlangsung,selesai,libur',
             'tutor_id' => 'nullable|exists:tutors,id',
         ]);
 
@@ -168,9 +182,32 @@ class PertemuanController
             unset($validated['tutor_id']);
         }
 
+        $validated['tarif_per_pertemuan'] = Kela::findOrFail($validated['kelas_id'])->tarif_per_pertemuan;
+
+        // Pindah kelas berarti pertemuan_ke lama (urutan di kelas asal) sudah
+        // tidak relevan — hitung ulang urutannya di kelas tujuan.
+        if ($validated['kelas_id'] !== $pertemuan->kelas_id) {
+            $validated['pertemuan_ke'] = $this->nextPertemuanKe($validated['kelas_id']);
+        }
+
         $pertemuan->update($validated);
 
         return $this->success($pertemuan->load(['kelas:id,nama', 'tutor:id,nama']), 'Pertemuan berhasil diperbarui');
+    }
+
+    public function selesai(Request $request, Pertemuan $pertemuan)
+    {
+        if (! $this->isOwnPertemuan($request, $pertemuan)) {
+            return $this->error('Anda tidak memiliki akses ke pertemuan ini', 403);
+        }
+
+        if ($pertemuan->status !== 'berlangsung') {
+            return $this->error('Pertemuan ini sudah tidak berstatus berlangsung', 422);
+        }
+
+        $pertemuan->update(['status' => 'selesai']);
+
+        return $this->success($pertemuan->fresh()->load(['kelas:id,nama', 'tutor:id,nama']), 'Pertemuan ditandai selesai');
     }
 
     public function destroy(Request $request, Pertemuan $pertemuan)

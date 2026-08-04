@@ -31,7 +31,6 @@ class TutorTest extends TestCase
             'username' => 'tutortest',
             'email' => 'tutortest@kasilmu.com',
             'bidang_ajar' => 'Matematika',
-            'tarif_per_pertemuan' => 50000,
         ]);
 
         $response->assertStatus(201)
@@ -55,7 +54,7 @@ class TutorTest extends TestCase
     {
         $this->actingAs($this->auth())->postJson('/api/tutor', [
             'nama' => 'Tutor A', 'username' => 'tutora', 'email' => 'tutora@kasilmu.com',
-            'bidang_ajar' => 'Fisika', 'tarif_per_pertemuan' => 60000,
+            'bidang_ajar' => 'Fisika',
         ]);
 
         $response = $this->actingAs($this->auth())->getJson('/api/tutor');
@@ -68,12 +67,12 @@ class TutorTest extends TestCase
     {
         $this->actingAs($this->auth())->postJson('/api/tutor', [
             'nama' => 'Old Name', 'username' => 'oldname', 'email' => 'oldname@kasilmu.com',
-            'bidang_ajar' => 'Fisika', 'tarif_per_pertemuan' => 60000,
+            'bidang_ajar' => 'Fisika',
         ]);
 
         $response = $this->actingAs($this->auth())->putJson('/api/tutor/1', [
             'nama' => 'New Name', 'username' => 'oldname', 'email' => 'oldname@kasilmu.com',
-            'bidang_ajar' => 'Fisika', 'tarif_per_pertemuan' => 60000,
+            'bidang_ajar' => 'Fisika',
         ]);
 
         $response->assertStatus(200)
@@ -85,7 +84,7 @@ class TutorTest extends TestCase
     {
         $this->actingAs($this->auth())->postJson('/api/tutor', [
             'nama' => 'Test', 'username' => 'testtutor', 'email' => 'test@kasilmu.com',
-            'bidang_ajar' => 'Fisika', 'tarif_per_pertemuan' => 60000,
+            'bidang_ajar' => 'Fisika',
         ]);
 
         $response = $this->actingAs($this->auth())->deleteJson('/api/tutor/1');

@@ -33,6 +33,7 @@ class KelasController
             'mata_pelajaran' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'kapasitas' => 'required|integer|min:1',
+            'tarif_per_pertemuan' => 'required|numeric|min:0',
             'ruang' => 'nullable|string|max:50',
             'status' => 'nullable|in:aktif,selesai',
         ]);
@@ -63,6 +64,7 @@ class KelasController
             'mata_pelajaran' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'kapasitas' => 'required|integer|min:1',
+            'tarif_per_pertemuan' => 'required|numeric|min:0',
             'ruang' => 'nullable|string|max:50',
             'status' => 'nullable|in:aktif,selesai',
         ]);

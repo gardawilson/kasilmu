@@ -44,8 +44,8 @@ class TutorScopeTest extends TestCase
         $kelaSendiri->siswa()->attach($siswaSendiri->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
         $kelaLain->siswa()->attach($siswaLain->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
 
-        Pertemuan::create(['kelas_id' => $kelaSendiri->id, 'tutor_id' => $tutor->id, 'pertemuan_ke' => 1, 'tgl' => '2026-07-01', 'status' => 'terlaksana']);
-        Pertemuan::create(['kelas_id' => $kelaLain->id, 'tutor_id' => null, 'pertemuan_ke' => 1, 'tgl' => '2026-07-01', 'status' => 'terlaksana']);
+        Pertemuan::create(['kelas_id' => $kelaSendiri->id, 'tutor_id' => $tutor->id, 'pertemuan_ke' => 1, 'tgl' => '2026-07-01', 'status' => 'selesai']);
+        Pertemuan::create(['kelas_id' => $kelaLain->id, 'tutor_id' => null, 'pertemuan_ke' => 1, 'tgl' => '2026-07-01', 'status' => 'selesai']);
 
         return compact('tutorUser', 'tutor', 'kelaSendiri', 'kelaLain', 'siswaSendiri', 'siswaLain');
     }
@@ -129,7 +129,7 @@ class TutorScopeTest extends TestCase
 
         $pertemuanTutorLain = Pertemuan::create([
             'kelas_id' => $ctx['kelaSendiri']->id, 'tutor_id' => $tutorLainModel->id,
-            'pertemuan_ke' => 2, 'tgl' => '2026-07-02', 'status' => 'terlaksana',
+            'pertemuan_ke' => 2, 'tgl' => '2026-07-02', 'status' => 'selesai',
         ]);
 
         $response = $this->actingAs($ctx['tutorUser'])->putJson('/api/pertemuan/'.$pertemuanTutorLain->id, [

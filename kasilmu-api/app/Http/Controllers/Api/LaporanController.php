@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Pembayaran;
+use App\Models\Pertemuan;
 use App\Models\Presensi;
 use App\Models\Siswa;
 use App\Models\SiswaPaket;
@@ -88,5 +89,55 @@ class LaporanController
         });
 
         return $this->paginated($result);
+    }
+
+    public function gaji(Request $request)
+    {
+        $query = Pertemuan::select(
+            'pertemuans.tutor_id',
+            'pertemuans.kelas_id',
+            'pertemuans.tarif_per_pertemuan',
+            DB::raw('COUNT(*) as jumlah_pertemuan')
+        )
+            ->where('pertemuans.status', 'selesai')
+            ->whereNotNull('pertemuans.tutor_id')
+            ->groupBy('pertemuans.tutor_id', 'pertemuans.kelas_id', 'pertemuans.tarif_per_pertemuan');
+
+        if ($tutorId = $request->tutor_id) {
+            $query->where('pertemuans.tutor_id', $tutorId);
+        }
+
+        if ($tglMulai = $request->tgl_mulai) {
+            $query->whereDate('pertemuans.tgl', '>=', $tglMulai);
+        }
+
+        if ($tglSelesai = $request->tgl_selesai) {
+            $query->whereDate('pertemuans.tgl', '<=', $tglSelesai);
+        }
+
+        $rows = $query->with(['tutor:id,nama', 'kelas:id,nama'])->get();
+
+        $result = $rows->groupBy('tutor_id')->map(function ($items, $tutorId) {
+            $kelas = $items->map(fn ($item) => [
+                'kelas_id' => $item->kelas_id,
+                'kelas' => $item->kelas?->nama,
+                'jumlah_pertemuan' => (int) $item->jumlah_pertemuan,
+                'tarif_per_pertemuan' => (float) $item->tarif_per_pertemuan,
+                'subtotal' => (int) $item->jumlah_pertemuan * (float) $item->tarif_per_pertemuan,
+            ]);
+
+            return [
+                'tutor_id' => (int) $tutorId,
+                'tutor' => $items->first()->tutor?->nama,
+                'kelas' => $kelas->values(),
+                'total_pertemuan' => $kelas->sum('jumlah_pertemuan'),
+                'total_gaji' => $kelas->sum('subtotal'),
+            ];
+        })->values();
+
+        return $this->success([
+            'total_gaji' => $result->sum('total_gaji'),
+            'detail' => $result,
+        ]);
     }
 }

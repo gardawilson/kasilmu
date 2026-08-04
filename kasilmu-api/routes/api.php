@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('laporan/keuangan', [LaporanController::class, 'keuangan']);
         Route::get('laporan/siswa', [LaporanController::class, 'siswa']);
         Route::get('laporan/kehadiran', [LaporanController::class, 'kehadiran']);
+        Route::get('laporan/gaji', [LaporanController::class, 'gaji']);
         Route::get('dashboard', [DashboardController::class, 'index']);
         Route::apiResource('paket', PaketController::class);
         Route::post('jenjang', [JenjangController::class, 'store']);
@@ -73,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('pertemuan/{pertemuan}', [PertemuanController::class, 'update']);
         Route::delete('pertemuan/{pertemuan}', [PertemuanController::class, 'destroy']);
         Route::post('pertemuan/{pertemuan}/presensi', [PertemuanController::class, 'storePresensi']);
+        Route::post('pertemuan/{pertemuan}/selesai', [PertemuanController::class, 'selesai']);
         Route::post('nilai', [NilaiController::class, 'store']);
         Route::put('nilai/{nilai}', [NilaiController::class, 'update']);
         Route::delete('nilai/{nilai}', [NilaiController::class, 'destroy']);
