@@ -47,6 +47,14 @@ export function useUpdatePertemuan(id: number) {
   })
 }
 
+export function useSelesaiPertemuan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<ApiResponse<Pertemuan>>(`/pertemuan/${id}/selesai`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pertemuan'] }),
+  })
+}
+
 export function useDeletePertemuan() {
   const qc = useQueryClient()
   return useMutation({

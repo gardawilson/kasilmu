@@ -204,18 +204,23 @@ export default function PertemuanPage() {
                   <TableCell>
                     <Chip label={p.status} size="small" sx={{
                       fontWeight: 600,
-                      ...(p.status === 'terlaksana'
+                      ...(p.status === 'selesai'
                         ? { bgcolor: '#dcfce7', color: '#15803d' }
+                        : p.status === 'berlangsung'
+                        ? { bgcolor: '#fef3c7', color: '#b45309' }
                         : { bgcolor: '#f1f5f9', color: '#475569' }),
                     }} />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Input Presensi">
-                      <Button size="small" variant="outlined" startIcon={<HowToReg sx={{ fontSize: 14 }} />}
+                    <Tooltip title={p.status === 'berlangsung' ? 'Isi Presensi & Tandai Selesai' : 'Lihat / Edit Presensi'}>
+                      <Button size="small" variant={p.status === 'berlangsung' ? 'contained' : 'outlined'}
+                        startIcon={<HowToReg sx={{ fontSize: 14 }} />}
                         onClick={() => setPresensiId(p.id)}
-                        sx={{ borderColor: '#e2e8f0', color: '#475569', fontSize: 12, py: 0.5,
-                          '&:hover': { borderColor: '#0d9488', color: '#0d9488', bgcolor: '#0d94880a' } }}>
-                        Presensi
+                        sx={p.status === 'berlangsung' ? { fontSize: 12, py: 0.5 } : {
+                          borderColor: '#e2e8f0', color: '#475569', fontSize: 12, py: 0.5,
+                          '&:hover': { borderColor: '#0d9488', color: '#0d9488', bgcolor: '#0d94880a' },
+                        }}>
+                        {p.status === 'berlangsung' ? 'Selesaikan' : 'Presensi'}
                       </Button>
                     </Tooltip>
                   </TableCell>

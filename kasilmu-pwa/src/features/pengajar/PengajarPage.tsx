@@ -26,7 +26,7 @@ export default function PengajarPage() {
         <Box>
           <Typography variant="h5">Data Pengajar</Typography>
           <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-            Kelola data pengajar dan tarif honorarium
+            Kelola data pengajar
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
@@ -50,7 +50,6 @@ export default function PengajarPage() {
               <TableCell>Pengajar</TableCell>
               <TableCell>Akun Login</TableCell>
               <TableCell>Bidang Ajar</TableCell>
-              <TableCell>Tarif / Pertemuan</TableCell>
               <TableCell>Pendidikan</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right" sx={{ pr: 2 }}>Aksi</TableCell>
@@ -60,14 +59,14 @@ export default function PengajarPage() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(7)].map((_, j) => (
+                  {[...Array(6)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={20} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={6}>
                   <Box sx={{ py: 8, textAlign: 'center' }}>
                     <Inbox sx={{ fontSize: 40, color: '#cbd5e1', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Belum ada data pengajar</Typography>
@@ -98,9 +97,6 @@ export default function PengajarPage() {
                     )}
                   </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{pengajar.bidang_ajar}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>
-                    Rp {Number(pengajar.tarif_per_pertemuan).toLocaleString('id-ID')}
-                  </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{pengajar.pendidikan_terakhir || '-'}</TableCell>
                   <TableCell>
                     <Chip label={pengajar.is_active ? 'Aktif' : 'Nonaktif'} size="small" sx={{

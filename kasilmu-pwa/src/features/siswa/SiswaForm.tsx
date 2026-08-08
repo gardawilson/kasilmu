@@ -40,7 +40,7 @@ function addMonthNoOverflow(value?: string) {
 }
 
 function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', {
+  return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -73,7 +73,7 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
   const editKelasAktif = editData?.kelas?.find((kelas) => kelas.id === editPaketAktif?.kelas_id)
     ?? editData?.kelas?.[0]
   const selectedTanggalSelesai = editData
-    ? editPaketAktif?.tgl_selesai
+    ? editPaketAktif?.tgl_selesai?.slice(0, 10)
     : addMonthNoOverflow(selectedTanggalMulai)
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
           jenjang_id: editData.tingkat?.jenjang_id,
           kelas_id: editPaketAktif?.kelas_id ?? editKelasAktif?.id,
           paket_id: editPaketAktif?.paket_id,
-          tgl_mulai_paket: editPaketAktif?.tgl_mulai,
+          tgl_mulai_paket: editPaketAktif?.tgl_mulai?.slice(0, 10),
         })
         setSekolahNama(editData.sekolah?.nama || '')
       } else {

@@ -25,7 +25,7 @@ export default function PengajarForm({ open, onClose, editData }: Props) {
       setSubmitError('')
       reset(editData ? { ...editData, username: editData.user?.username ?? '' } : {
         nama: '', username: '', email: '', no_telp: '',
-        bidang_ajar: '', tarif_per_pertemuan: 0,
+        bidang_ajar: '',
         pendidikan_terakhir: '',
       })
     }
@@ -71,14 +71,6 @@ export default function PengajarForm({ open, onClose, editData }: Props) {
           <TextField label="Bidang Ajar" fullWidth margin="dense" required
             {...register('bidang_ajar', { required: 'Bidang ajar wajib diisi' })}
             error={!!errors.bidang_ajar} helperText={errors.bidang_ajar?.message} />
-          <TextField label="Tarif Per Pertemuan (Rp)" fullWidth margin="dense" required
-            type="number"
-            {...register('tarif_per_pertemuan', {
-              required: 'Tarif wajib diisi',
-              min: { value: 0, message: 'Minimal 0' },
-            })}
-            error={!!errors.tarif_per_pertemuan}
-            helperText={errors.tarif_per_pertemuan?.message} />
           <TextField label="Pendidikan Terakhir" fullWidth margin="dense"
             {...register('pendidikan_terakhir')} />
           <TextField label="Aktif" fullWidth margin="dense" select

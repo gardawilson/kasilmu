@@ -21,7 +21,7 @@ export default function KelasForm({ open, onClose, editData }: Props) {
     if (open) {
       reset(editData ?? {
         nama: '', mata_pelajaran: '', deskripsi: '',
-        kapasitas: 20, ruang: '', status: 'aktif',
+        kapasitas: 20, tarif_per_pertemuan: 0, ruang: '', status: 'aktif',
       })
     }
   }, [open, editData, reset])
@@ -50,6 +50,9 @@ export default function KelasForm({ open, onClose, editData }: Props) {
           <TextField label="Kapasitas" fullWidth margin="dense" required type="number"
             {...register('kapasitas', { required: 'Kapasitas wajib diisi', min: { value: 1, message: 'Minimal 1' } })}
             error={!!errors.kapasitas} helperText={errors.kapasitas?.message} />
+          <TextField label="Tarif Per Pertemuan (Rp)" fullWidth margin="dense" required type="number"
+            {...register('tarif_per_pertemuan', { required: 'Tarif wajib diisi', min: { value: 0, message: 'Minimal 0' } })}
+            error={!!errors.tarif_per_pertemuan} helperText={errors.tarif_per_pertemuan?.message} />
           <TextField label="Ruang" fullWidth margin="dense"
             {...register('ruang')} />
           <TextField label="Status" fullWidth margin="dense" select

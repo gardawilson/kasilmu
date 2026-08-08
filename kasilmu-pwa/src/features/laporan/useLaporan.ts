@@ -53,3 +53,34 @@ export function useLaporanKehadiran(params: { siswa_id?: string; kelas_id?: stri
     },
   })
 }
+
+export interface LaporanGajiKelas {
+  kelas_id: number
+  kelas: string
+  jumlah_pertemuan: number
+  tarif_per_pertemuan: number
+  subtotal: number
+}
+
+export interface LaporanGajiItem {
+  tutor_id: number
+  tutor: string
+  kelas: LaporanGajiKelas[]
+  total_pertemuan: number
+  total_gaji: number
+}
+
+export interface LaporanGaji {
+  total_gaji: number
+  detail: LaporanGajiItem[]
+}
+
+export function useLaporanGaji(params: { tutor_id?: string; tgl_mulai?: string; tgl_selesai?: string }) {
+  return useQuery({
+    queryKey: ['laporan', 'gaji', params],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; message: string; data: LaporanGaji }>('/laporan/gaji', { params })
+      return res.data.data
+    },
+  })
+}

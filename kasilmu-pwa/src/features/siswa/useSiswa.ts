@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
 import type { Siswa, ApiResponse } from '../../types'
 
-export function useSiswa(params: { search?: string; status?: string; page?: number; per_page?: number }) {
+export function useSiswa(params: { search?: string; status?: string; page?: number; per_page?: number; belum_berkelas?: boolean }) {
   return useQuery({
     queryKey: ['siswa', params],
     queryFn: async () => {

@@ -4,10 +4,11 @@ import {
   TextField, MenuItem, TablePagination, Chip, Avatar, Skeleton,
 } from '@mui/material'
 import {
-  useLaporanKeuangan, useLaporanSiswa, useLaporanKehadiran,
+  useLaporanKeuangan, useLaporanSiswa, useLaporanKehadiran, useLaporanGaji,
 } from './useLaporan'
 import { useSiswa } from '../siswa/useSiswa'
 import { useKelas } from '../kelas/useKelas'
+import { usePengajar } from '../pengajar/usePengajar'
 
 function TabPanel({ value, index, children }: { value: number; index: number; children: React.ReactNode }) {
   return value === index ? <Box>{children}</Box> : null
@@ -330,6 +331,94 @@ function LaporanKehadiranTab() {
   )
 }
 
+function LaporanGajiTab() {
+  const [tutorFilter, setTutorFilter] = useState('')
+  const [tglMulai, setTglMulai] = useState('')
+  const [tglSelesai, setTglSelesai] = useState('')
+  const { data: pengajar } = usePengajar({ per_page: 100 })
+  const { data, isLoading } = useLaporanGaji({
+    tutor_id: tutorFilter || undefined,
+    tgl_mulai: tglMulai || undefined,
+    tgl_selesai: tglSelesai || undefined,
+  })
+  const total = Number(data?.total_gaji ?? 0)
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+        <TextField select label="Filter Pengajar" value={tutorFilter}
+          onChange={(e) => setTutorFilter(e.target.value)} sx={{ minWidth: 200 }}>
+          <MenuItem value="">Semua Pengajar</MenuItem>
+          {pengajar?.data?.map((p) => (
+            <MenuItem key={p.id} value={p.id}>{p.nama}</MenuItem>
+          ))}
+        </TextField>
+        <TextField label="Dari" type="date" value={tglMulai}
+          onChange={(e) => setTglMulai(e.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 160 }} />
+        <TextField label="Sampai" type="date" value={tglSelesai}
+          onChange={(e) => setTglSelesai(e.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 160 }} />
+        <Box sx={{ ml: 'auto', px: 3, py: 1.5, borderRadius: 2, bgcolor: '#dcfce7', border: '1px solid #bbf7d0' }}>
+          <Typography sx={{ fontSize: 12, color: '#15803d', fontWeight: 500, mb: 0.25 }}>Total Gaji</Typography>
+          <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#15803d' }}>
+            Rp {total.toLocaleString('id-ID')}
+          </Typography>
+        </Box>
+      </Box>
+
+      <Paper sx={{ overflow: 'hidden' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Pengajar</TableCell>
+              <TableCell>Kelas</TableCell>
+              <TableCell align="center">Jumlah Pertemuan</TableCell>
+              <TableCell>Tarif / Pertemuan</TableCell>
+              <TableCell>Subtotal</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading ? (
+              [...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  {[...Array(5)].map((_, j) => (
+                    <TableCell key={j}><Skeleton variant="rounded" height={18} /></TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : !data?.detail?.length ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 6, color: '#94a3b8' }}>Tidak ada data</TableCell>
+              </TableRow>
+            ) : (
+              data.detail.flatMap((tutor) => (
+                tutor.kelas.map((k, idx) => (
+                  <TableRow key={`${tutor.tutor_id}-${k.kelas_id}-${idx}`} hover>
+                    {idx === 0 && (
+                      <TableCell rowSpan={tutor.kelas.length} sx={{ fontWeight: 600, verticalAlign: 'top' }}>
+                        {tutor.tutor}
+                      </TableCell>
+                    )}
+                    <TableCell sx={{ color: '#475569' }}>{k.kelas}</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>{k.jumlah_pertemuan}</TableCell>
+                    <TableCell sx={{ color: '#475569' }}>
+                      Rp {Number(k.tarif_per_pertemuan).toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      Rp {Number(k.subtotal).toLocaleString('id-ID')}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Paper>
+    </Box>
+  )
+}
+
 export default function LaporanPage() {
   const [tab, setTab] = useState(0)
 
@@ -352,11 +441,13 @@ export default function LaporanPage() {
           <Tab label="Keuangan" />
           <Tab label="Data Siswa" />
           <Tab label="Kehadiran" />
+          <Tab label="Gaji Pengajar" />
         </Tabs>
         <Box sx={{ p: 3 }}>
           <TabPanel value={tab} index={0}><LaporanKeuanganTab /></TabPanel>
           <TabPanel value={tab} index={1}><LaporanSiswaTab /></TabPanel>
           <TabPanel value={tab} index={2}><LaporanKehadiranTab /></TabPanel>
+          <TabPanel value={tab} index={3}><LaporanGajiTab /></TabPanel>
         </Box>
       </Paper>
     </Box>

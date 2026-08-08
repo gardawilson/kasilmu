@@ -29,7 +29,6 @@ type FormData = {
   email?: string
   no_telp?: string
   bidang_ajar?: string
-  tarif_per_pertemuan?: number
   pendidikan_terakhir?: string
 }
 
@@ -70,7 +69,6 @@ export default function AkunForm({ open, onClose, editData }: Props) {
         await createPengajar.mutateAsync({
           nama: data.name, username: data.username, email: data.email,
           no_telp: data.no_telp, bidang_ajar: data.bidang_ajar,
-          tarif_per_pertemuan: data.tarif_per_pertemuan,
           pendidikan_terakhir: data.pendidikan_terakhir,
         } as any)
         qc.invalidateQueries({ queryKey: ['user'] })
@@ -127,9 +125,6 @@ export default function AkunForm({ open, onClose, editData }: Props) {
               <TextField label="Bidang Ajar" fullWidth margin="dense" required
                 {...register('bidang_ajar', { required: 'Bidang ajar wajib diisi' })}
                 error={!!errors.bidang_ajar} helperText={errors.bidang_ajar?.message} />
-              <TextField label="Tarif Per Pertemuan (Rp)" fullWidth margin="dense" required type="number"
-                {...register('tarif_per_pertemuan', { required: 'Tarif wajib diisi', min: { value: 0, message: 'Minimal 0' } })}
-                error={!!errors.tarif_per_pertemuan} helperText={errors.tarif_per_pertemuan?.message} />
               <TextField label="Pendidikan Terakhir" fullWidth margin="dense"
                 {...register('pendidikan_terakhir')} />
             </>

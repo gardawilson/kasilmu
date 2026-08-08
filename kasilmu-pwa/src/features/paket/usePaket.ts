@@ -66,10 +66,11 @@ export function useCreateSiswaPaket() {
   })
 }
 
-export function useJadwalkanGantiPaket(siswaPaketId: number) {
+export function useGantiPaket(siswaPaketId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (paket_id: number) => api.post(`/siswa-paket/${siswaPaketId}/ganti`, { paket_id }),
+    mutationFn: (data: { paket_id: number; tgl_mulai: string }) =>
+      api.post(`/siswa-paket/${siswaPaketId}/ganti`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['siswa-paket'] })
       qc.invalidateQueries({ queryKey: ['tagihan'] })
@@ -89,7 +90,10 @@ export function useDeleteSiswaPaket() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => api.delete(`/siswa-paket/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['siswa-paket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['siswa-paket'] })
+      qc.invalidateQueries({ queryKey: ['tagihan'] })
+    },
   })
 }
 

@@ -62,7 +62,6 @@ export interface Pengajar {
   email: string
   no_telp: string | null
   bidang_ajar: string
-  tarif_per_pertemuan: number
   pendidikan_terakhir: string | null
   foto: string | null
   is_active: boolean
@@ -75,6 +74,7 @@ export interface Kelas {
   mata_pelajaran: string
   deskripsi: string | null
   kapasitas: number
+  tarif_per_pertemuan: number
   ruang: string | null
   status: 'aktif' | 'selesai'
   siswa?: Siswa[]
@@ -89,7 +89,8 @@ export interface Pertemuan {
   pertemuan_ke: number
   tgl: string
   materi: string | null
-  status: 'terlaksana' | 'libur'
+  status: 'berlangsung' | 'selesai' | 'libur'
+  tarif_per_pertemuan: number
   kelas?: Kelas
   tutor?: Pengajar
   presensis?: Presensi[]

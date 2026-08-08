@@ -26,7 +26,7 @@ export default function PertemuanForm({ open, onClose, editData }: Props) {
 
   useEffect(() => {
     if (open) {
-      reset(editData ?? { kelas_id: 0, tutor_id: null, pertemuan_ke: 1, tgl: '', materi: '', status: 'terlaksana' })
+      reset(editData ?? { kelas_id: 0, tutor_id: null, tgl: '', materi: '', status: 'selesai' })
     }
   }, [open, editData, reset])
 
@@ -52,9 +52,10 @@ export default function PertemuanForm({ open, onClose, editData }: Props) {
               <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
             ))}
           </TextField>
-          <TextField label="Pertemuan Ke-" fullWidth margin="dense" required type="number"
-            {...register('pertemuan_ke', { required: 'Nomor pertemuan wajib diisi', min: { value: 1, message: 'Minimal 1' } })}
-            error={!!errors.pertemuan_ke} helperText={errors.pertemuan_ke?.message} />
+          {editData && (
+            <TextField label="Pertemuan Ke-" fullWidth margin="dense" value={editData.pertemuan_ke} disabled
+              helperText="Nomor urut dihitung otomatis, tidak bisa diubah manual" />
+          )}
           <TextField label="Tanggal" type="date" fullWidth margin="dense" required
             {...register('tgl', { required: 'Tanggal wajib diisi' })}
             error={!!errors.tgl}
@@ -72,8 +73,9 @@ export default function PertemuanForm({ open, onClose, editData }: Props) {
           <TextField label="Materi" fullWidth margin="dense" multiline rows={3}
             {...register('materi')} />
           <TextField label="Status" fullWidth margin="dense" select
-            {...register('status')} defaultValue="terlaksana">
-            <MenuItem value="terlaksana">Terlaksana</MenuItem>
+            {...register('status')} defaultValue="selesai">
+            <MenuItem value="berlangsung">Berlangsung</MenuItem>
+            <MenuItem value="selesai">Selesai</MenuItem>
             <MenuItem value="libur">Libur</MenuItem>
           </TextField>
         </DialogContent>

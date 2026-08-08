@@ -5,7 +5,7 @@ import {
   ToggleButton, TextField, Box, Typography, Chip, Alert,
 } from '@mui/material'
 import { CheckCircle, Cancel, Warning } from '@mui/icons-material'
-import { usePertemuanDetail, usePresensi, useStorePresensi } from './usePertemuan'
+import { usePertemuanDetail, usePresensi, useStorePresensi, useSelesaiPertemuan } from './usePertemuan'
 import { useKelasDetail } from '../kelas/useKelas'
 import { useAuth } from '../auth/useAuth'
 
@@ -32,7 +32,9 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
   const { data: presensi } = usePresensi(pertemuanId ?? 0)
   const { data: kelasDetail } = useKelasDetail(pertemuan?.data?.kelas_id ?? 0)
   const save = useStorePresensi(pertemuanId ?? 0)
+  const selesai = useSelesaiPertemuan()
 
+  const isBerlangsung = pertemuan?.data?.status === 'berlangsung'
   const pertemuanTutorId = pertemuan?.data?.tutor_id
   const isReadOnly = isTutor && !isAdmin && pertemuanTutorId !== null && pertemuanTutorId !== undefined
     && pertemuanTutorId !== user?.tutor?.id
@@ -70,6 +72,9 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       catatan: val.catatan || undefined,
     }))
     await save.mutateAsync(payload)
+    if (isBerlangsung && pertemuanId) {
+      await selesai.mutateAsync(pertemuanId)
+    }
     setSaved(true)
   }
 
@@ -87,9 +92,14 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
             Ini pertemuan milik pengajar lain — Anda hanya bisa melihat, tidak bisa mengubah presensinya.
           </Alert>
         )}
+        {isBerlangsung && !saved && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Sesi ini masih berlangsung. Isi kehadiran &amp; catatan performa, lalu simpan untuk menandai sesi selesai.
+          </Alert>
+        )}
         {saved && (
           <Box sx={{ mb: 2, p: 1.5, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
-            Presensi berhasil disimpan!
+            {isBerlangsung ? 'Presensi disimpan & pertemuan ditandai selesai!' : 'Presensi berhasil disimpan!'}
           </Box>
         )}
         <Table size="small">
@@ -191,8 +201,10 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       <DialogActions>
         <Button onClick={onClose}>Tutup</Button>
         {!isReadOnly && (
-          <Button onClick={handleSave} variant="contained" disabled={save.isPending || siswaList.length === 0}>
-            {save.isPending ? 'Menyimpan...' : 'Simpan Presensi'}
+          <Button onClick={handleSave} variant="contained" disabled={save.isPending || selesai.isPending || siswaList.length === 0}>
+            {save.isPending || selesai.isPending
+              ? 'Menyimpan...'
+              : isBerlangsung ? 'Simpan & Tandai Selesai' : 'Simpan Presensi'}
           </Button>
         )}
       </DialogActions>

@@ -62,6 +62,7 @@ export default function KelasPage() {
               <TableCell>Nama Kelas</TableCell>
               <TableCell>Mata Pelajaran</TableCell>
               <TableCell>Kapasitas</TableCell>
+              <TableCell>Tarif / Pertemuan</TableCell>
               <TableCell>Pertemuan</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right" sx={{ pr: 2 }}>Aksi</TableCell>
@@ -71,14 +72,14 @@ export default function KelasPage() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(6)].map((_, j) => (
+                  {[...Array(7)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={20} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <Box sx={{ py: 8, textAlign: 'center' }}>
                     <Inbox sx={{ fontSize: 40, color: '#cbd5e1', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Belum ada data kelas</Typography>
@@ -94,6 +95,9 @@ export default function KelasPage() {
                       sx={{ bgcolor: '#f59e0b12', color: '#b45309', fontWeight: 600 }} />
                   </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{kelas.kapasitas} siswa</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>
+                    Rp {Number(kelas.tarif_per_pertemuan).toLocaleString('id-ID')}
+                  </TableCell>
                   <TableCell sx={{ color: '#475569' }}>{kelas.pertemuans_count ?? 0}x</TableCell>
                   <TableCell>
                     <Chip label={kelas.status} size="small" sx={{

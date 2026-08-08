@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
-  TextField, MenuItem, Box, Typography, Alert, Chip,
+  TextField, MenuItem, Box, Typography, Alert, Chip, Tooltip,
 } from '@mui/material'
-import { Delete, Add, SwapHoriz } from '@mui/icons-material'
+import { Delete, PersonRemove, Add, SwapHoriz } from '@mui/icons-material'
 import { useKelasDetail, useAddSiswaKelas, useRemoveSiswaKelas } from './useKelas'
 import { useSiswa } from '../siswa/useSiswa'
 import {
-  useCreateSiswaPaket, useHargaPaket, useJadwalkanGantiPaket, useSiswaPaketAktif,
+  useCreateSiswaPaket, useHargaPaket, useGantiPaket, useDeleteSiswaPaket, useSiswaPaketAktif,
 } from '../paket/usePaket'
-import type { HargaPaket, SiswaPaket } from '../../types'
+import DeleteDialog from '../../components/ui/DeleteDialog'
+import type { HargaPaket, Siswa, SiswaPaket } from '../../types'
 
 function todayLocal() {
   const now = new Date()
@@ -40,7 +41,7 @@ interface Props {
 
 export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
   const { data: detail, isLoading } = useKelasDetail(kelasId ?? 0)
-  const { data: allSiswa } = useSiswa({ per_page: 100 })
+  const { data: allSiswa } = useSiswa({ per_page: 100, belum_berkelas: true })
   const { data: hargaPaketList } = useHargaPaket(kelasId ?? 0)
   const add = useAddSiswaKelas(kelasId ?? 0)
   const remove = useRemoveSiswaKelas(kelasId ?? 0)
@@ -90,14 +91,11 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
               <TextField select size="small" sx={{ minWidth: 250 }}
                 label="Tambah Siswa" value={selectedSiswa} disabled={isFull}
                 onChange={(e) => setSelectedSiswa(e.target.value)}
-                slotProps={{ select: { displayEmpty: true } }}>
+                slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
                 <MenuItem value="" disabled>-- Pilih Siswa --</MenuItem>
-                {allSiswa?.data
-                  ?.filter((s) => !siswaTerdaftar.some((ts: any) => ts.id === s.id))
-                  .filter((s) => !(s.kelas as any[] | undefined)?.some((k) => k.pivot?.status === 'aktif'))
-                  .map((s) => (
-                    <MenuItem key={s.id} value={s.id}>{s.nama} ({s.nis})</MenuItem>
-                  ))}
+                {allSiswa?.data?.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>{s.nama} ({s.nis})</MenuItem>
+                ))}
               </TextField>
               <Button variant="contained" size="small" startIcon={<Add />}
                 onClick={handleAdd} disabled={isFull || !selectedSiswa || add.isPending}>
@@ -118,7 +116,7 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
                 {siswaTerdaftar.length === 0 ? (
                   <TableRow><TableCell colSpan={5} align="center">Belum ada siswa</TableCell></TableRow>
                 ) : (
-                  siswaTerdaftar.map((siswa: any) => (
+                  siswaTerdaftar.map((siswa) => (
                     <SiswaRow
                       key={siswa.id}
                       siswa={siswa}
@@ -144,30 +142,30 @@ export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
 function SiswaRow({
   siswa, kelasId, hargaPakets, onRemove, removing,
 }: {
-  siswa: any
+  siswa: Siswa
   kelasId: number
   hargaPakets: HargaPaket[]
   onRemove: () => void
   removing: boolean
 }) {
   const { data: aktifPaket } = useSiswaPaketAktif(siswa.id)
-  const createSiswaPaket = useCreateSiswaPaket()
-  const [selectedPaket, setSelectedPaket] = useState('')
-  const [tglMulai, setTglMulai] = useState(todayLocal())
+  const deletePaket = useDeleteSiswaPaket()
+  const [inputOpen, setInputOpen] = useState(false)
   const [gantiOpen, setGantiOpen] = useState(false)
+  const [hapusPaketOpen, setHapusPaketOpen] = useState(false)
+  const [hapusPaketError, setHapusPaketError] = useState('')
 
   const active = aktifPaket?.data
 
-  const handleAssign = async () => {
-    if (!selectedPaket) return
-    await createSiswaPaket.mutateAsync({
-      siswa_id: siswa.id,
-      kelas_id: kelasId,
-      paket_id: Number(selectedPaket),
-      tgl_mulai: tglMulai,
-    })
-    setSelectedPaket('')
-    setTglMulai(todayLocal())
+  const handleHapusPaket = async () => {
+    if (!active) return
+    setHapusPaketError('')
+    try {
+      await deletePaket.mutateAsync(active.id)
+      setHapusPaketOpen(false)
+    } catch (err: unknown) {
+      setHapusPaketError((err as any)?.response?.data?.message || 'Gagal menghapus paket')
+    }
   }
 
   return (
@@ -183,58 +181,150 @@ function SiswaRow({
             <Typography variant="caption" color="text.secondary">
               {new Date(active.tgl_mulai).toLocaleDateString('id-ID')}–{new Date(active.tgl_selesai).toLocaleDateString('id-ID')}
             </Typography>
-            {active.paket_berikutnya ? (
-              <Alert severity="info" sx={{ py: 0, px: 1, '& .MuiAlert-message': { py: 0.5 } }}>
-                Berikutnya: <strong>{active.paket_berikutnya.paket?.nama}</strong>
-                {' mulai '}{formatDate(active.paket_berikutnya.tgl_mulai)}
-              </Alert>
-            ) : null}
-            <Button size="small" variant="outlined" startIcon={<SwapHoriz />}
-              onClick={() => setGantiOpen(true)}>
-              {active.paket_berikutnya ? 'Ubah Paket Berikutnya' : 'Ganti Paket'}
-            </Button>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Button size="small" variant="outlined" startIcon={<SwapHoriz />}
+                onClick={() => setGantiOpen(true)}>
+                Ganti Paket
+              </Button>
+              <Tooltip title="Hapus Paket">
+                <IconButton size="small" color="error" onClick={() => setHapusPaketOpen(true)}>
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
             <GantiPaketDialog
               open={gantiOpen}
               onClose={() => setGantiOpen(false)}
               active={active}
               hargaPakets={hargaPakets}
             />
+            <DeleteDialog
+              open={hapusPaketOpen}
+              title="Hapus Paket"
+              description={hapusPaketError || `Paket "${active.paket?.nama}" milik ${siswa.nama} akan dihapus beserta tagihannya. Tindakan ini tidak dapat dibatalkan.`}
+              loading={deletePaket.isPending}
+              onClose={() => { setHapusPaketOpen(false); setHapusPaketError('') }}
+              onConfirm={handleHapusPaket}
+            />
           </Box>
         ) : (
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <TextField select size="small" value={selectedPaket}
-              onChange={(e) => setSelectedPaket(e.target.value)}
-              sx={{ minWidth: 160 }}
-              slotProps={{ select: { displayEmpty: true } }}>
-              <MenuItem value="" disabled>Pilih Paket</MenuItem>
-              {hargaPakets.map((h) => (
-                <MenuItem key={h.paket_id} value={h.paket_id}>
-                  {h.paket?.nama} — Rp {Number(h.harga).toLocaleString('id-ID')}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Mulai Paket"
-              type="date"
-              size="small"
-              value={tglMulai}
-              onChange={(e) => setTglMulai(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 145 }}
-            />
-            <Button size="small" variant="contained" disabled={!selectedPaket || !tglMulai || createSiswaPaket.isPending}
-              onClick={handleAssign}>
-              Simpan
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Chip label="Belum ada paket" size="small"
+              sx={{ bgcolor: '#f1f5f9', color: '#64748b', fontWeight: 600 }} />
+            <Button size="small" variant="outlined" startIcon={<Add />}
+              onClick={() => setInputOpen(true)} disabled={hargaPakets.length === 0}>
+              Input Paket
             </Button>
+            <InputPaketDialog
+              open={inputOpen}
+              onClose={() => setInputOpen(false)}
+              siswa={siswa}
+              kelasId={kelasId}
+              hargaPakets={hargaPakets}
+            />
           </Box>
         )}
       </TableCell>
       <TableCell align="center">
-        <IconButton size="small" color="error" onClick={onRemove} disabled={removing}>
-          <Delete fontSize="small" />
-        </IconButton>
+        <Tooltip title="Keluarkan dari Kelas">
+          <IconButton size="small" color="error" onClick={onRemove} disabled={removing}>
+            <PersonRemove fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </TableCell>
     </TableRow>
+  )
+}
+
+function InputPaketDialog({
+  open, onClose, siswa, kelasId, hargaPakets,
+}: {
+  open: boolean
+  onClose: () => void
+  siswa: Siswa
+  kelasId: number
+  hargaPakets: HargaPaket[]
+}) {
+  const createSiswaPaket = useCreateSiswaPaket()
+  const [paketId, setPaketId] = useState('')
+  const [tglMulai, setTglMulai] = useState(todayLocal())
+  const [error, setError] = useState('')
+  const hargaTerpilih = hargaPakets.find((harga) => harga.paket_id === Number(paketId))
+  const selesaiBaru = tglMulai ? addMonthNoOverflow(tglMulai) : ''
+
+  useEffect(() => {
+    if (!open) return
+    setPaketId('')
+    setTglMulai(todayLocal())
+    setError('')
+  }, [open])
+
+  const handleSave = async () => {
+    if (!paketId || !tglMulai) return
+    setError('')
+
+    try {
+      await createSiswaPaket.mutateAsync({
+        siswa_id: siswa.id,
+        kelas_id: kelasId,
+        paket_id: Number(paketId),
+        tgl_mulai: tglMulai,
+      })
+      onClose()
+    } catch (err: unknown) {
+      setError((err as any)?.response?.data?.message || 'Gagal menambahkan paket')
+    }
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Input Paket — {siswa.nama}</DialogTitle>
+      <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <TextField
+          label="Paket"
+          select
+          fullWidth
+          required
+          margin="dense"
+          value={paketId}
+          onChange={(event) => setPaketId(event.target.value)}
+          slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+        >
+          <MenuItem value="" disabled>-- Pilih Paket --</MenuItem>
+          {hargaPakets.map((harga) => (
+            <MenuItem key={harga.paket_id} value={harga.paket_id}>
+              {harga.paket?.nama} ({harga.paket?.jumlah_pertemuan}x) — Rp {Number(harga.harga).toLocaleString('id-ID')}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          label="Tanggal Mulai Paket"
+          type="date"
+          fullWidth
+          required
+          margin="dense"
+          value={tglMulai}
+          onChange={(event) => setTglMulai(event.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        {hargaTerpilih && selesaiBaru && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Periode: <strong>{formatDate(tglMulai)}</strong> sampai
+            {' '}<strong>{formatDate(selesaiBaru)}</strong><br />
+            Kuota: <strong>{hargaTerpilih.paket?.jumlah_pertemuan} pertemuan</strong><br />
+            Tagihan: <strong>Rp {Number(hargaTerpilih.harga).toLocaleString('id-ID')}</strong>
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Batal</Button>
+        <Button variant="contained" onClick={handleSave}
+          disabled={!paketId || !tglMulai || createSiswaPaket.isPending}>
+          {createSiswaPaket.isPending ? 'Menyimpan...' : 'Simpan'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }
 
@@ -244,43 +334,44 @@ function GantiPaketDialog({ open, onClose, active, hargaPakets }: {
   active: SiswaPaket
   hargaPakets: HargaPaket[]
 }) {
-  const jadwalkan = useJadwalkanGantiPaket(active.id)
+  const ganti = useGantiPaket(active.id)
   const [paketId, setPaketId] = useState('')
+  const [tglMulai, setTglMulai] = useState(todayLocal())
   const [error, setError] = useState('')
-  const paketBerikutnya = active.paket_berikutnya
-  const mulaiBerikutnya = active.tgl_selesai.slice(0, 10)
-  const selesaiBerikutnya = addMonthNoOverflow(mulaiBerikutnya)
+  const minTglMulai = active.tgl_mulai.slice(0, 10)
+  const selesaiBaru = tglMulai ? addMonthNoOverflow(tglMulai) : ''
   const hargaTerpilih = hargaPakets.find((harga) => harga.paket_id === Number(paketId))
 
   useEffect(() => {
     if (!open) return
-    setPaketId(paketBerikutnya ? String(paketBerikutnya.paket_id) : '')
+    setPaketId('')
+    setTglMulai(todayLocal())
     setError('')
-  }, [open, paketBerikutnya])
+  }, [open])
 
   const handleSave = async () => {
-    if (!paketId) return
+    if (!paketId || !tglMulai) return
     setError('')
 
     try {
-      await jadwalkan.mutateAsync(Number(paketId))
+      await ganti.mutateAsync({ paket_id: Number(paketId), tgl_mulai: tglMulai })
       onClose()
     } catch (err: unknown) {
-      setError((err as any)?.response?.data?.message || 'Gagal menjadwalkan pergantian paket')
+      setError((err as any)?.response?.data?.message || 'Gagal mengganti paket')
     }
   }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{paketBerikutnya ? 'Ubah Paket Berikutnya' : 'Ganti Paket Periode Berikutnya'}</DialogTitle>
+      <DialogTitle>Ganti Paket</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Paket aktif <strong>{active.paket?.nama}</strong> tetap berlaku sampai
-          {' '}<strong>{formatDate(active.tgl_selesai)}</strong>. Riwayat presensi dan sisa kuotanya tidak berubah.
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Paket <strong>{active.paket?.nama}</strong> akan langsung dihentikan pada tanggal yang dipilih dan sisa kuota
+          {' '}(<strong>{active.sisa_pertemuan ?? '?'} pertemuan</strong>) akan hangus tanpa pengembalian. Pastikan ini disengaja.
         </Alert>
         <TextField
-          label="Paket Berikutnya"
+          label="Paket Baru"
           select
           fullWidth
           required
@@ -297,10 +388,21 @@ function GantiPaketDialog({ open, onClose, active, hargaPakets }: {
               </MenuItem>
             ))}
         </TextField>
-        {hargaTerpilih && (
+        <TextField
+          label="Tanggal Mulai Paket Baru"
+          type="date"
+          fullWidth
+          required
+          margin="dense"
+          value={tglMulai}
+          onChange={(event) => setTglMulai(event.target.value)}
+          slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: minTglMulai, max: todayLocal() } }}
+          helperText="Untuk input backdate (misal siswa sebenarnya sudah pindah paket beberapa hari lalu), pilih tanggal di masa lalu — tidak boleh sebelum tanggal mulai paket aktif saat ini atau melebihi hari ini"
+        />
+        {hargaTerpilih && selesaiBaru && (
           <Alert severity="success" sx={{ mt: 2 }}>
-            Periode baru: <strong>{formatDate(mulaiBerikutnya)}</strong> sampai
-            {' '}<strong>{formatDate(selesaiBerikutnya)}</strong><br />
+            Periode baru: <strong>{formatDate(tglMulai)}</strong> sampai
+            {' '}<strong>{formatDate(selesaiBaru)}</strong><br />
             Kuota: <strong>{hargaTerpilih.paket?.jumlah_pertemuan} pertemuan</strong><br />
             Tagihan baru: <strong>Rp {Number(hargaTerpilih.harga).toLocaleString('id-ID')}</strong>
           </Alert>
@@ -308,8 +410,8 @@ function GantiPaketDialog({ open, onClose, active, hargaPakets }: {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Batal</Button>
-        <Button variant="contained" onClick={handleSave} disabled={!paketId || jadwalkan.isPending}>
-          {jadwalkan.isPending ? 'Menjadwalkan...' : 'Jadwalkan Pergantian'}
+        <Button variant="contained" color="warning" onClick={handleSave} disabled={!paketId || !tglMulai || ganti.isPending}>
+          {ganti.isPending ? 'Mengganti...' : 'Ganti Sekarang'}
         </Button>
       </DialogActions>
     </Dialog>
