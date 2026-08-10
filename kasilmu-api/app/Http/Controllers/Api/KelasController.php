@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Kela;
 use App\Models\Siswa;
+use App\Models\SiswaPaket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KelasController
 {
@@ -114,8 +116,23 @@ class KelasController
 
     public function removeSiswa(Kela $kela, $siswaId)
     {
-        $kela->siswa()->detach($siswaId);
+        DB::transaction(function () use ($kela, $siswaId) {
+            $siswaPakets = SiswaPaket::where('siswa_id', $siswaId)
+                ->where('kelas_id', $kela->id)
+                ->get();
 
-        return $this->success(null, 'Siswa berhasil dikeluarkan dari kelas');
+            foreach ($siswaPakets as $siswaPaket) {
+                if ($siswaPaket->tagihan?->pembayarans()->exists()) {
+                    continue;
+                }
+
+                $siswaPaket->tagihan()->delete();
+                $siswaPaket->delete();
+            }
+
+            $kela->siswa()->detach($siswaId);
+        });
+
+        return $this->success(null, 'Siswa berhasil dikeluarkan dari kelas beserta paketnya');
     }
 }

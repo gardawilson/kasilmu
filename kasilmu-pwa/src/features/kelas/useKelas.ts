@@ -51,7 +51,10 @@ export function useAddSiswaKelas(kelasId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (siswa_id: number) => api.post(`/kelas/${kelasId}/siswa`, { siswa_id }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kelas'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kelas'] })
+      qc.invalidateQueries({ queryKey: ['siswa'] })
+    },
   })
 }
 
@@ -59,6 +62,11 @@ export function useRemoveSiswaKelas(kelasId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (siswa_id: number) => api.delete(`/kelas/${kelasId}/siswa/${siswa_id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kelas'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kelas'] })
+      qc.invalidateQueries({ queryKey: ['siswa'] })
+      qc.invalidateQueries({ queryKey: ['siswa-paket'] })
+      qc.invalidateQueries({ queryKey: ['tagihan'] })
+    },
   })
 }

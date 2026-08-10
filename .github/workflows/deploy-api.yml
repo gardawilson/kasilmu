@@ -1,0 +1,68 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'kasilmu-api/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install Composer dependencies (production)
+        working-directory: kasilmu-api
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Package build
+        working-directory: kasilmu-api
+        run: |
+          tar czf ../api-deploy.tar.gz \
+            --exclude='.env' \
+            --exclude='.git' \
+            --exclude='tests' \
+            --exclude='database/database.sqlite' \
+            .
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Trust server host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload build
+        run: |
+          scp -P "${{ secrets.SSH_PORT }}" api-deploy.tar.gz \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/api-deploy.tar.gz"
+
+      - name: Extract build and run migrations
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" '
+            set -e
+            tar xzf ~/api-deploy.tar.gz -C ~/public_html/api.kasilmu.com
+            rm ~/api-deploy.tar.gz
+            cd ~/public_html/api.kasilmu.com
+            /usr/local/bin/ea-php83 artisan migrate --force
+            /usr/local/bin/ea-php83 artisan config:clear
+            /usr/local/bin/ea-php83 artisan route:clear
+            /usr/local/bin/ea-php83 artisan cache:clear
+          '
