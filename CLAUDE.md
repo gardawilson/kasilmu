@@ -80,39 +80,59 @@ Roles (via Spatie Permission): `admin`, `tutor`, `siswa`, `orang_tua`. Permissio
 
 ## Deployment (production hosting)
 
-Production is a **shared cPanel host with no SSH/terminal access** — File Manager/FTP and cPanel's UI tools (Cron Jobs, MySQL Databases, phpMyAdmin) are the only available mechanisms. There is no CI/CD and no cPanel Git Version Control repo configured (checked and confirmed empty) — every deploy is a manual file upload from a machine that has this repo checked out.
+**As of 2026-08-10, production migrated from `kasilmu.my.id` (cPanel user `kasg7412`, no SSH) to `kasilmu.com` (cPanel user `kasn4685`, SSH-enabled).** The old host's manual File Manager zip-upload procedure is retired — deploys are now automated via GitHub Actions over SSH. If you find references to `kasilmu.my.id`/`kasg7412` elsewhere (old commit messages, chat history), treat them as historical, not current.
 
-**Layout on the server** (cPanel user `kasg7412`, domain `kasilmu.my.id`):
+**Server details:**
+- Domain: `kasilmu.com`, cPanel user `kasn4685`, home dir `/home/kasn4685`.
+- SSH: host `103.247.10.150`, **port `2223`** (non-standard — the provider's shared-hosting plans put SSH on this port; confirmed via their support chat, not discoverable from cPanel UI). Server name `masiwang`, cPanel 136.
+- Default `php` CLI on the server is **PHP 7.4** — always invoke Laravel's `artisan` via the explicit PHP 8.3 binary: **`/usr/local/bin/ea-php83`** (same pattern as the old host; the app requires PHP `^8.3` per `composer.json`).
+- No `composer` or `rsync` installed on the server — deploys build everything (including `vendor/`) on the GitHub Actions runner and ship the finished artifact over `scp`/`tar`, never build on the server itself.
 
-- `public_html/` (domain root) — the built frontend (`kasilmu-pwa/dist/*` contents), served directly as static files.
-- `public_html/api.kasilmu.my.id/` (subdomain document root) — the **entire** Laravel app uploaded flat (not just `public/`): `app/`, `bootstrap/`, `config/`, `database/`, `public/`, `resources/`, `routes/`, `storage/`, `vendor/`, `.env`, `artisan`, etc. all live directly in this folder. This is not the "put only `public/` on the web" best practice, but it's the existing working setup — don't restructure it without the user's explicit sign-off, since it's a live site.
-- `public_html/api.kasilmu.my.id/.env` — production env: `DB_CONNECTION=mysql`, database `kasg7412_kasilmu`, `APP_URL=https://api.kasilmu.my.id`. **Never overwrite this file during a deploy** — it's not part of any upload package.
-- `public_html/icons/` — PWA icon PNGs (`icon-192x192.png` etc., referenced by the manifest) that exist **only on the server**, not in the `kasilmu-pwa` repo's `public/` folder (which only has `favicon.svg`/`icons.svg`). Never delete/overwrite this folder when redeploying the frontend.
+**Layout on the server** (same shape as the old host):
+- `public_html/` (domain root) — built frontend (`kasilmu-pwa/dist/*` contents).
+- `public_html/api.kasilmu.com/` (subdomain document root) — entire Laravel app flat (not just `public/`).
+- `public_html/api.kasilmu.com/.env` — production env (`DB_CONNECTION=mysql`). **Never overwrite this file during a deploy** — the CI workflow explicitly excludes it from the upload tarball.
+- No separate `public_html/icons/` folder was found on this new host (unlike the old one) — if PWA icon PNGs turn out to be missing here, that's a gap to fix, not an existing folder to protect.
 
-### Deploy procedure
+### CI/CD (GitHub Actions) — current deploy mechanism
 
-**Backend (`kasilmu-api`)**
+Two workflows in `.github/workflows/`, both triggered on push to `master` (path-filtered) or manually via `workflow_dispatch`:
 
-1. Locally: `composer install --no-dev --optimize-autoloader` in a throwaway copy of the repo (don't run this in the working dev checkout — it strips dev dependencies needed for local testing).
-2. Zip that copy, excluding: `.env`, `.git`, `tests/`, `database/database.sqlite`, and pre-existing contents of `storage/logs`, `storage/framework/{cache,sessions,views}`.
-3. Upload the zip into `public_html/api.kasilmu.my.id/` via File Manager, then use File Manager's **Extract** (overwrites code files in place; `.env` and `storage/app` are untouched since they weren't in the zip).
-4. Delete the uploaded zip afterward.
+- **`deploy-api.yml`**: checkout → `composer install --no-dev` on the runner (PHP 8.3 via `shivammathur/setup-php`) → `tar` the app (excluding `.env`, `.git`, `tests/`, `database/database.sqlite`) → `scp` to the server → SSH in, extract into `public_html/api.kasilmu.com/`, then run `artisan migrate --force` + cache-clear commands. **Migrations run automatically on every backend deploy** — there's no manual gate, so a destructive migration merged to `master` will apply itself immediately. Review migrations carefully in PR before merging; take a DB backup via phpMyAdmin (Export → Quick → Go) before merging anything that alters/drops columns.
+- **`deploy-pwa.yml`**: checkout → `npm install` (not `npm ci` — see note below) → build with `VITE_API_URL=https://api.kasilmu.com/api` baked in via `.env.production` → `tar` the `dist/` contents → `scp` + SSH-extract into `public_html/`. Extraction only adds/overwrites files present in the tarball, never deletes, so it can't accidentally wipe unrelated folders already on the server.
 
-**Frontend (`kasilmu-pwa`)**
+Both workflows authenticate over SSH using a **dedicated passphrase-less deploy key** (`gh-actions-ci-deploy`, ed25519) stored as the `SSH_PRIVATE_KEY` GitHub Actions secret — deliberately separate from any personal SSH key, since a passphrase-protected key can't be used non-interactively in CI. Repo secrets required (Settings → Secrets and variables → Actions): `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`.
 
-1. Locally: create/update `kasilmu-pwa/.env.production` with `VITE_API_URL=https://api.kasilmu.my.id/api`, then `npm run build`. Vite merges `.env.production` over `.env` in build mode, so the dev `.env` (pointing at `localhost:8000`) is untouched.
-2. Zip the contents of `dist/` (not the folder itself — its _contents_), upload to `public_html/` root, Extract there. This overwrites `index.html`/`assets/`/`sw.js`/etc. but never includes `icons/`, so that folder survives untouched.
+**Why `npm install` instead of `npm ci` in `deploy-pwa.yml`:** `package-lock.json` generated on Windows doesn't reliably include the Linux-target optional native dependencies some packages pin per-platform (hit this with `@emnapi/*`), so `npm ci`'s strict lockfile-match check fails on the Ubuntu runner even right after running `npm install` locally. `npm install` tolerates the mismatch. If this gets fixed upstream (or the lockfile is ever regenerated on Linux/CI), switching back to `npm ci` would be safer.
 
-**Running artisan commands without a terminal** — use a one-shot cron job:
+The repo has two nested `.git` directories (`kasilmu-api/.git`, `kasilmu-pwa/.git`) left over from when each app was developed separately, but they're **not** what's pushed anywhere — the actual tracked, pushed repo is the root `.git` at the project root (a monorepo containing both app folders as regular tracked directories), pushed to `github.com/gardawilson/kasilmu`. Don't rely on the nested `.git`s for anything; they're vestigial.
 
-1. cPanel → **Cron Jobs** → create a job with schedule `* * * * *` (any schedule works if you're deleting it right after) and command:
+### Setting up SSH access on a new machine
+
+To administer the server (run one-off `artisan` commands, inspect logs, etc.) from a machine other than the one that originally set this up:
+
+1. Get a copy of a private key already authorized on the server — either copy `github-actions-deploy` (personal, passphrase-protected) or `gh-actions-ci-deploy` (automation, no passphrase) from the original machine, **or** generate a fresh keypair locally (`ssh-keygen -t ed25519 -f <path> [-N ""]`) and add its `.pub` contents as a new line in `~/.ssh/authorized_keys` on the server (append via an existing SSH session, or cPanel → SSH Access → Import Key).
+2. **Windows-specific gotcha**: OpenSSH refuses private keys with loose file permissions ("Bad permissions" / "Permission denied" errors) and standard `icacls /grant "DOMAIN\user:R"` can fail silently (empty ACL entry, e.g. `garda\:(R)`) if the machine's domain trust is broken ("The trust relationship between this workstation and the primary domain failed"). The reliable fix that bypasses name resolution entirely:
+   ```powershell
+   $path = "C:\path\to\private_key"
+   $sid = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User
+   $acl = New-Object System.Security.AccessControl.FileSecurity
+   $acl.SetOwner($sid)
+   $acl.SetAccessRuleProtection($true, $false)
+   $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($sid, "Read", "Allow")))
+   Set-Acl -Path $path -AclObject $acl
    ```
-   /usr/local/bin/ea-php83 /home/kasg7412/public_html/api.kasilmu.my.id/artisan migrate --force >> /home/kasg7412/migrate.log 2>&1
-   ```
-   (`/usr/local/bin/ea-php83` is the confirmed-working PHP 8.3 CLI binary path on this host — the app requires PHP `^8.3` per `composer.json`.)
-2. Wait ~1–2 minutes, check `/home/kasg7412/migrate.log` in File Manager for the result.
-3. **Delete the cron job immediately after confirming success** — don't leave it running every minute. Reuse the same pattern (edit the command, save, wait, check log, delete) for any other one-off artisan command (`storage:link`, `db:seed`, etc.). Note: cPanel's cron "Edit" form requires clicking the actual **"Save Crontab"/"Edit Line"** button at the bottom — just navigating away does not persist the change.
-4. Before running migrations that could be destructive (column drops, etc.), export a quick DB backup first via phpMyAdmin (Export → Quick → Go) — cheap insurance even when the data is only test data.
+3. Connect: `ssh -i <path-to-private-key> -p 2223 kasn4685@103.247.10.150`.
+4. **If the connection times out** (not "connection refused") on port 22/2222/21098/etc., that's very likely the provider's non-default SSH port, not a config issue on your end — ask their support directly rather than guessing further ports (repeated failed attempts risk the CSF/`lfd` firewall temporarily banning your IP). This host's port turned out to be **2223**, confirmed only via their live chat support — not discoverable from any cPanel page.
+5. Repeated failed **password** prompts (as opposed to key auth) also risk an `lfd` ban — if a connection unexpectedly falls through to a password prompt instead of accepting the key, Ctrl+C immediately rather than guessing at the account password.
+
+**Running one-off artisan commands** (now that SSH works, this replaces the old host's cron-job workaround):
+```
+ssh -i <key> -p 2223 kasn4685@103.247.10.150
+cd ~/public_html/api.kasilmu.com
+/usr/local/bin/ea-php83 artisan <command>
+```
+As before, back up via phpMyAdmin (Export → Quick → Go) before anything destructive.
 
 ### PWA update mechanism — don't regress this
 
