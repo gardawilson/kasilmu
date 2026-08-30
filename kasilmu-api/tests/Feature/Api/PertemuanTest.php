@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Paket;
 use App\Models\Siswa;
@@ -50,8 +49,7 @@ class PertemuanTest extends TestCase
         ]);
         $kela->siswa()->attach($siswa->id, ['tgl_masuk' => now()->toDateString(), 'status' => 'aktif']);
 
-        $paket = Paket::create(['nama' => 'Paket Test', 'jumlah_pertemuan' => 8]);
-        HargaPaket::create(['kelas_id' => $kela->id, 'paket_id' => $paket->id, 'harga' => 500000]);
+        $paket = Paket::create(['nama' => 'Paket Test', 'jumlah_pertemuan' => 8, 'kelas_id' => $kela->id, 'harga' => 500000]);
         SiswaPaket::create([
             'siswa_id' => $siswa->id, 'kelas_id' => $kela->id, 'paket_id' => $paket->id,
             'tgl_mulai' => now()->toDateString(), 'tgl_selesai' => now()->addMonth()->toDateString(),

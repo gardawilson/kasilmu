@@ -25,6 +25,11 @@ class Kela extends Model
         return $this->hasMany(Pertemuan::class, 'kelas_id');
     }
 
+    public function pakets(): HasMany
+    {
+        return $this->hasMany(Paket::class, 'kelas_id');
+    }
+
     public function nilais(): HasMany
     {
         return $this->hasMany(Nilai::class, 'kelas_id');

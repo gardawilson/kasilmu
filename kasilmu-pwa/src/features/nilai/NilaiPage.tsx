@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import {
-  Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, TextField, IconButton, TablePagination, Chip, MenuItem,
-  Avatar, Tooltip, Skeleton,
+  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody,
+  Button, TextField, MenuItem, Avatar, Skeleton,
 } from '@mui/material'
 import { Add, Edit, Delete, Inbox } from '@mui/icons-material'
 import { useNilai, useDeleteNilai } from './useNilai'
@@ -10,21 +9,26 @@ import { useKelas } from '../kelas/useKelas'
 import { useSiswa } from '../siswa/useSiswa'
 import NilaiForm from './NilaiForm'
 import DeleteDialog from '../../components/ui/DeleteDialog'
+import RowActions from '../../components/ui/RowActions'
+import PageHeader from '../../components/ui/PageHeader'
+import FilterBar, { filterFieldSx, filterFieldSlotProps } from '../../components/ui/FilterBar'
+import DataTableCard from '../../components/ui/DataTableCard'
+import StatusChip, { type StatusTone } from '../../components/ui/StatusChip'
 import type { Nilai } from '../../types'
 
-const JENIS_SX: Record<string, object> = {
-  tugas: { bgcolor: '#dbeafe', color: '#1d4ed8' },
-  uts:   { bgcolor: '#fef3c7', color: '#b45309' },
-  uas:   { bgcolor: '#ede9fe', color: '#6d28d9' },
+const JENIS_TONE: Record<string, StatusTone> = {
+  tugas: 'blue',
+  uts: 'orange',
+  uas: 'purple',
 }
 
 function NilaiBadge({ nilai }: { nilai: number }) {
   const n = Number(nilai)
   const sx = n >= 80
-    ? { bgcolor: '#dcfce7', color: '#15803d' }
+    ? { bgcolor: 'rgba(0,182,155,0.2)', color: '#00b69b' }
     : n >= 60
-    ? { bgcolor: '#fef3c7', color: '#b45309' }
-    : { bgcolor: '#fee2e2', color: '#dc2626' }
+    ? { bgcolor: 'rgba(255,167,86,0.2)', color: '#d98b3f' }
+    : { bgcolor: 'rgba(239,56,38,0.16)', color: '#ef3826' }
   return (
     <Box sx={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -37,7 +41,7 @@ function NilaiBadge({ nilai }: { nilai: number }) {
 
 export default function NilaiPage() {
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
+  const [perPage] = useState(10)
   const [kelasFilter, setKelasFilter] = useState('')
   const [jenisFilter, setJenisFilter] = useState('')
   const [siswaFilter, setSiswaFilter] = useState('')
@@ -53,45 +57,66 @@ export default function NilaiPage() {
   })
   const del = useDeleteNilai()
 
+  const filterActive = kelasFilter !== '' || jenisFilter !== '' || siswaFilter !== ''
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-        <Box>
-          <Typography variant="h5">Nilai Siswa</Typography>
-          <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-            Rekap nilai tugas, UTS, dan UAS per siswa
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
-          Tambah Nilai
-        </Button>
-      </Box>
+      <PageHeader
+        title="Nilai Siswa"
+        subtitle="Rekap nilai tugas, UTS, dan UAS per siswa"
+        action={
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
+            Tambah Nilai
+          </Button>
+        }
+      />
 
-      <Paper sx={{ overflow: 'hidden' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <TextField select label="Kelas" value={kelasFilter}
-            onChange={(e) => { setKelasFilter(e.target.value); setPage(1) }} sx={{ minWidth: 180 }}>
-            <MenuItem value="">Semua Kelas</MenuItem>
-            {kelas?.data?.map((k) => (
-              <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
-            ))}
-          </TextField>
-          <TextField select label="Siswa" value={siswaFilter}
-            onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }} sx={{ minWidth: 200 }}>
-            <MenuItem value="">Semua Siswa</MenuItem>
-            {siswa?.data?.map((s) => (
-              <MenuItem key={s.id} value={s.id}>{s.nama}</MenuItem>
-            ))}
-          </TextField>
-          <TextField select label="Jenis Nilai" value={jenisFilter}
-            onChange={(e) => { setJenisFilter(e.target.value); setPage(1) }} sx={{ minWidth: 140 }}>
-            <MenuItem value="">Semua Jenis</MenuItem>
-            <MenuItem value="tugas">Tugas</MenuItem>
-            <MenuItem value="uts">UTS</MenuItem>
-            <MenuItem value="uas">UAS</MenuItem>
-          </TextField>
-        </Box>
+      <FilterBar
+        onReset={() => { setKelasFilter(''); setJenisFilter(''); setSiswaFilter(''); setPage(1) }}
+        resetDisabled={!filterActive}
+      >
+        <TextField
+          select variant="standard" value={kelasFilter}
+          onChange={(e) => { setKelasFilter(e.target.value); setPage(1) }}
+          slotProps={filterFieldSlotProps}
+          sx={{ ...filterFieldSx, minWidth: 160 }}
+        >
+          <MenuItem value="">Semua Kelas</MenuItem>
+          {kelas?.data?.map((k) => (
+            <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select variant="standard" value={siswaFilter}
+          onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }}
+          slotProps={filterFieldSlotProps}
+          sx={{ ...filterFieldSx, minWidth: 180 }}
+        >
+          <MenuItem value="">Semua Siswa</MenuItem>
+          {siswa?.data?.map((s) => (
+            <MenuItem key={s.id} value={s.id}>{s.nama}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select variant="standard" value={jenisFilter}
+          onChange={(e) => { setJenisFilter(e.target.value); setPage(1) }}
+          slotProps={filterFieldSlotProps}
+          sx={filterFieldSx}
+        >
+          <MenuItem value="">Semua Jenis</MenuItem>
+          <MenuItem value="tugas">Tugas</MenuItem>
+          <MenuItem value="uts">UTS</MenuItem>
+          <MenuItem value="uas">UAS</MenuItem>
+        </TextField>
+      </FilterBar>
 
+      <DataTableCard
+        page={page}
+        lastPage={data?.meta?.last_page ?? 1}
+        total={data?.meta?.total ?? 0}
+        perPage={perPage}
+        onPageChange={setPage}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -126,46 +151,36 @@ export default function NilaiPage() {
                 <TableRow key={n.id} hover>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: '#ef444415', color: '#ef4444' }}>
+                      <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: 'rgba(72,128,255,0.12)', color: '#4880ff' }}>
                         {(n.siswa?.nama ?? '?').charAt(0).toUpperCase()}
                       </Avatar>
-                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{n.siswa?.nama ?? '—'}</Typography>
+                      <Typography sx={{ fontWeight: 700, fontSize: 14, color: 'rgba(32,34,36,0.9)' }}>{n.siswa?.nama ?? '—'}</Typography>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: '#475569' }}>{n.kelas?.nama ?? '—'}</TableCell>
+                  <TableCell>{n.kelas?.nama ?? '—'}</TableCell>
                   <TableCell>
-                    <Chip label={n.jenis_nilai.toUpperCase()} size="small"
-                      sx={{ fontWeight: 700, letterSpacing: '0.04em', ...JENIS_SX[n.jenis_nilai] }} />
+                    <StatusChip
+                      label={n.jenis_nilai.toUpperCase()}
+                      tone={JENIS_TONE[n.jenis_nilai] ?? 'grey'}
+                      sx={{ letterSpacing: '0.04em', textTransform: 'none' }}
+                    />
                   </TableCell>
                   <TableCell><NilaiBadge nilai={n.nilai} /></TableCell>
-                  <TableCell sx={{ color: '#475569', fontSize: 13 }}>{n.keterangan || '—'}</TableCell>
-                  <TableCell align="right" sx={{ pr: 1 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => { setEditData(n); setOpen(true) }}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hapus">
-                      <IconButton size="small" onClick={() => setDeleteId(n.id)}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                  <TableCell sx={{ fontSize: 13 }}>{n.keterangan || '—'}</TableCell>
+                  <TableCell align="right" sx={{ pr: 2 }}>
+                    <RowActions
+                      actions={[
+                        { icon: <Edit />, tooltip: 'Edit', onClick: () => { setEditData(n); setOpen(true) } },
+                        { icon: <Delete />, tooltip: 'Hapus', tone: 'error', onClick: () => setDeleteId(n.id) },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          component="div" count={data?.meta?.total || 0} page={page - 1}
-          rowsPerPage={perPage} onPageChange={(_, p) => setPage(p + 1)}
-          onRowsPerPageChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1) }}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          sx={{ borderTop: '1px solid #f1f5f9' }}
-        />
-      </Paper>
+      </DataTableCard>
 
       {open && <NilaiForm open={open} onClose={() => { setOpen(false); setEditData(null) }} editData={editData} />}
 

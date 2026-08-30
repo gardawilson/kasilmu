@@ -7,6 +7,7 @@ use App\Models\Pertemuan;
 use App\Models\Presensi;
 use App\Models\Siswa;
 use App\Models\SiswaPaket;
+use App\Models\Tutor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -89,6 +90,120 @@ class LaporanController
         });
 
         return $this->paginated($result);
+    }
+
+    public function kehadiranDetail(Request $request, Siswa $siswa)
+    {
+        $query = Presensi::query()
+            ->join('pertemuans', 'presensis.pertemuan_id', '=', 'pertemuans.id')
+            ->leftJoin('kelas', 'pertemuans.kelas_id', '=', 'kelas.id')
+            ->where('presensis.siswa_id', $siswa->id)
+            ->select(
+                'pertemuans.tgl',
+                'pertemuans.pertemuan_ke',
+                'presensis.status',
+                'presensis.keterangan',
+                'kelas.nama as kelas_nama'
+            )
+            ->orderBy('pertemuans.tgl');
+
+        if ($kelasId = $request->kelas_id) {
+            $query->where('pertemuans.kelas_id', $kelasId);
+        }
+
+        if ($tglMulai = $request->tgl_mulai) {
+            $query->whereDate('pertemuans.tgl', '>=', $tglMulai);
+        }
+
+        if ($tglSelesai = $request->tgl_selesai) {
+            $query->whereDate('pertemuans.tgl', '<=', $tglSelesai);
+        }
+
+        $items = $query->get()->map(fn ($row) => [
+            'tgl' => (string) $row->tgl,
+            'pertemuan_ke' => $row->pertemuan_ke,
+            'status' => $row->status,
+            'keterangan' => $row->keterangan,
+            'kelas' => $row->kelas_nama,
+        ]);
+
+        return $this->success([
+            'siswa' => $siswa->only(['id', 'nama', 'nis']),
+            'presensi' => $items,
+        ]);
+    }
+
+    public function kehadiranPengajar(Request $request)
+    {
+        $query = Pertemuan::query()
+            ->whereNotNull('pertemuans.tutor_id')
+            ->where('pertemuans.status', '!=', 'libur')
+            ->select(
+                'pertemuans.tutor_id',
+                DB::raw('COUNT(*) as total_sesi'),
+                DB::raw('COUNT(DISTINCT pertemuans.tgl) as total_hari'),
+                DB::raw('COUNT(DISTINCT pertemuans.kelas_id) as total_kelas')
+            )
+            ->with('tutor:id,nama,nip')
+            ->groupBy('pertemuans.tutor_id')
+            ->orderByDesc(DB::raw('COUNT(*)'));
+
+        if ($tutorId = $request->tutor_id) {
+            $query->where('pertemuans.tutor_id', $tutorId);
+        }
+
+        if ($kelasId = $request->kelas_id) {
+            $query->where('pertemuans.kelas_id', $kelasId);
+        }
+
+        if ($tglMulai = $request->tgl_mulai) {
+            $query->whereDate('pertemuans.tgl', '>=', $tglMulai);
+        }
+
+        if ($tglSelesai = $request->tgl_selesai) {
+            $query->whereDate('pertemuans.tgl', '<=', $tglSelesai);
+        }
+
+        return $this->paginated($query->paginate($request->per_page ?? 20));
+    }
+
+    public function kehadiranPengajarDetail(Request $request, Tutor $tutor)
+    {
+        $query = Pertemuan::query()
+            ->leftJoin('kelas', 'pertemuans.kelas_id', '=', 'kelas.id')
+            ->where('pertemuans.tutor_id', $tutor->id)
+            ->where('pertemuans.status', '!=', 'libur')
+            ->select(
+                'pertemuans.tgl',
+                'pertemuans.pertemuan_ke',
+                'pertemuans.status',
+                'kelas.nama as kelas_nama'
+            )
+            ->orderBy('pertemuans.tgl');
+
+        if ($kelasId = $request->kelas_id) {
+            $query->where('pertemuans.kelas_id', $kelasId);
+        }
+
+        if ($tglMulai = $request->tgl_mulai) {
+            $query->whereDate('pertemuans.tgl', '>=', $tglMulai);
+        }
+
+        if ($tglSelesai = $request->tgl_selesai) {
+            $query->whereDate('pertemuans.tgl', '<=', $tglSelesai);
+        }
+
+        $items = $query->get()->map(fn ($row) => [
+            'tgl' => (string) $row->tgl,
+            'pertemuan_ke' => $row->pertemuan_ke,
+            'status' => $row->status,
+            'kelas' => $row->kelas_nama,
+        ]);
+
+        return $this->success([
+            'tutor' => $tutor->only(['id', 'nama', 'nip']),
+            'pertemuan' => $items,
+        ]);
     }
 
     public function gaji(Request $request)

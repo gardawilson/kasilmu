@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\HargaPaket;
 use App\Models\Kela;
+use App\Models\Paket;
 use App\Models\Siswa;
 use App\Models\SiswaPaket;
 use App\Models\Tagihan;
@@ -81,7 +81,10 @@ class SiswaController
             'foto' => 'nullable|string|max:255',
             'status' => 'nullable|in:aktif,nonaktif,lulus',
             'kelas_id' => 'required|exists:kelas,id',
-            'paket_id' => 'required|exists:pakets,id',
+            'paket_id' => [
+                'required',
+                Rule::exists('pakets', 'id')->where('kelas_id', $request->integer('kelas_id')),
+            ],
             'tgl_mulai_paket' => 'nullable|date',
         ]);
 
@@ -101,10 +104,10 @@ class SiswaController
                     throw new RuntimeException("Kelas sudah penuh (kapasitas {$kela->kapasitas} orang)");
                 }
 
-                $hargaPaket = HargaPaket::where('kelas_id', $kelasId)->where('paket_id', $paketId)->first();
+                $paket = Paket::where('id', $paketId)->where('kelas_id', $kelasId)->first();
 
-                if (! $hargaPaket) {
-                    throw new RuntimeException('Harga untuk kombinasi kelas dan paket ini belum diatur');
+                if (! $paket) {
+                    throw new RuntimeException('Paket tidak ditemukan untuk kelas ini');
                 }
 
                 $kela->siswa()->attach($siswa->id, [
@@ -125,7 +128,7 @@ class SiswaController
                     'siswa_id' => $siswa->id,
                     'siswa_paket_id' => $siswaPaket->id,
                     'jenis' => 'spp',
-                    'jumlah' => $hargaPaket->harga,
+                    'jumlah' => $paket->harga,
                     'tenggat' => $tglMulaiPaket,
                     'status' => 'pending',
                 ]);

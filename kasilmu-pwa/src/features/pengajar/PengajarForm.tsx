@@ -10,11 +10,12 @@ interface Props {
   open: boolean
   onClose: () => void
   editData?: Pengajar | null
+  onDelete?: () => void
 }
 
 type PengajarFormData = Partial<Pengajar> & { username?: string }
 
-export default function PengajarForm({ open, onClose, editData }: Props) {
+export default function PengajarForm({ open, onClose, editData, onDelete }: Props) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<PengajarFormData>()
   const create = useCreatePengajar()
   const update = useUpdatePengajar(editData?.id || 0)
@@ -80,6 +81,11 @@ export default function PengajarForm({ open, onClose, editData }: Props) {
           </TextField>
         </DialogContent>
         <DialogActions>
+          {editData && onDelete && (
+            <Button color="error" onClick={onDelete} sx={{ mr: 'auto' }}>
+              Hapus
+            </Button>
+          )}
           <Button onClick={onClose}>Batal</Button>
           <Button type="submit" variant="contained" disabled={create.isPending || update.isPending}>
             {editData ? 'Update' : 'Simpan'}

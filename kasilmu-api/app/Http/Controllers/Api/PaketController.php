@@ -12,14 +12,22 @@ class PaketController
 
     public function index(Request $request)
     {
-        return $this->paginated(Paket::latest()->paginate($request->per_page ?? 20));
+        $query = Paket::query()->with('kelas:id,nama');
+
+        if ($request->kelas_id) {
+            $query->where('kelas_id', $request->kelas_id);
+        }
+
+        return $this->paginated($query->latest()->paginate($request->per_page ?? 100));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'kelas_id' => 'required|exists:kelas,id',
             'nama' => 'required|string|max:255',
             'jumlah_pertemuan' => 'required|integer|min:1',
+            'harga' => 'required|numeric|min:0',
             'deskripsi' => 'nullable|string',
         ]);
 
@@ -30,7 +38,7 @@ class PaketController
 
     public function show(Paket $paket)
     {
-        return $this->success($paket);
+        return $this->success($paket->load('kelas:id,nama'));
     }
 
     public function update(Request $request, Paket $paket)
@@ -38,6 +46,7 @@ class PaketController
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'jumlah_pertemuan' => 'required|integer|min:1',
+            'harga' => 'required|numeric|min:0',
             'deskripsi' => 'nullable|string',
         ]);
 

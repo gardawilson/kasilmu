@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Table, TableHead, TableRow, TableCell, TableBody, ToggleButtonGroup,
-  ToggleButton, TextField, Box, Typography, Chip, Alert,
+  ToggleButton, TextField, Typography, Chip, Alert,
 } from '@mui/material'
 import { CheckCircle, Cancel, Warning } from '@mui/icons-material'
 import { usePertemuanDetail, usePresensi, useStorePresensi, useSelesaiPertemuan } from './usePertemuan'
@@ -10,21 +10,29 @@ import { useKelasDetail } from '../kelas/useKelas'
 import { useAuth } from '../auth/useAuth'
 
 const STATUS_KEHADIRAN = [
-  { value: 'hadir', label: 'Hadir', icon: <CheckCircle fontSize="small" />, color: 'success' },
-  { value: 'tidak_hadir', label: 'Tidak Hadir', icon: <Cancel fontSize="small" />, color: 'error' },
+  { value: 'hadir', icon: <CheckCircle fontSize="small" /> },
+  { value: 'tidak_hadir', icon: <Cancel fontSize="small" /> },
 ]
+
+/**
+ * - `absensi`   : dipakai tepat setelah "Mulai Mengajar" — hanya kehadiran, tanpa catatan performa.
+ * - `catatan`   : dipakai lewat tombol "Selesaikan" — isi catatan performa, lalu tandai pertemuan selesai.
+ * - `full`      : lihat / ubah semuanya (pertemuan yang sudah selesai).
+ */
+type PresensiMode = 'absensi' | 'catatan' | 'full'
 
 interface Props {
   open: boolean
   onClose: () => void
   pertemuanId: number | null
+  mode?: PresensiMode
 }
 
 interface PresensiState {
   [siswaId: number]: { status: string; keterangan: string; catatan: string }
 }
 
-export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
+export default function PresensiDialog({ open, onClose, pertemuanId, mode = 'full' }: Props) {
   const { user } = useAuth()
   const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
   const isTutor = !!user?.roles?.some((r) => r.name === 'tutor')
@@ -34,13 +42,15 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
   const save = useStorePresensi(pertemuanId ?? 0)
   const selesai = useSelesaiPertemuan()
 
-  const isBerlangsung = pertemuan?.data?.status === 'berlangsung'
   const pertemuanTutorId = pertemuan?.data?.tutor_id
   const isReadOnly = isTutor && !isAdmin && pertemuanTutorId !== null && pertemuanTutorId !== undefined
     && pertemuanTutorId !== user?.tutor?.id
 
+  const showKehadiran = mode !== 'catatan'
+  const showCatatan = mode !== 'absensi'
+  const editKehadiran = mode !== 'catatan' && !isReadOnly
+
   const [dataSiswa, setDataSiswa] = useState<PresensiState>({})
-  const [saved, setSaved] = useState(false)
 
   const siswaListRaw = kelasDetail?.data?.siswa
   const presensiListRaw = presensi?.data
@@ -49,7 +59,6 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
 
   useEffect(() => {
     if (open) {
-      setSaved(false)
       const initial: PresensiState = {}
       for (const s of siswaList) {
         const existing = (presensiList as any[]).find((p) => p.siswa_id === s.id)
@@ -69,48 +78,58 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       siswa_id: Number(siswaId),
       status: val.status,
       keterangan: val.keterangan || undefined,
-      catatan: val.catatan || undefined,
+      catatan: val.status === 'hadir' ? (val.catatan || undefined) : undefined,
     }))
     await save.mutateAsync(payload)
-    if (isBerlangsung && pertemuanId) {
+    if (mode === 'catatan' && pertemuanId) {
       await selesai.mutateAsync(pertemuanId)
     }
-    setSaved(true)
+    onClose()
   }
+
+  const title = mode === 'absensi'
+    ? 'Absensi Siswa'
+    : mode === 'catatan'
+      ? 'Catatan Performa'
+      : 'Presensi'
+  const saveLabel = mode === 'catatan' ? 'Selesaikan' : mode === 'absensi' ? 'Simpan Absensi' : 'Simpan Presensi'
+  const busy = save.isPending || selesai.isPending
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
-        Presensi — {pertemuan?.data?.kelas?.nama ?? ''} (Pertemuan #{pertemuan?.data?.pertemuan_ke})
+        {title} — {pertemuan?.data?.kelas?.nama ?? ''} (Pertemuan #{pertemuan?.data?.pertemuan_ke})
         <Typography variant="caption" sx={{ display: 'block' }} color="text.secondary">
-          Pengajar: {pertemuan?.data?.tutor?.nama ?? '—'} · {pertemuan?.data?.tgl} — {pertemuan?.data?.materi}
+          Pengajar: {pertemuan?.data?.tutor?.nama ?? '—'} · {pertemuan?.data?.tgl}
         </Typography>
       </DialogTitle>
       <DialogContent>
         {isReadOnly && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            Ini pertemuan milik pengajar lain — Anda hanya bisa melihat, tidak bisa mengubah presensinya.
+            Ini pertemuan milik pengajar lain — Anda hanya bisa melihat.
           </Alert>
         )}
-        {isBerlangsung && !saved && (
+        {mode === 'absensi' && !isReadOnly && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            Sesi ini masih berlangsung. Isi kehadiran &amp; catatan performa, lalu simpan untuk menandai sesi selesai.
+            Tandai kehadiran tiap siswa lalu simpan. Catatan performa diisi nanti lewat tombol "Selesaikan".
           </Alert>
         )}
-        {saved && (
-          <Box sx={{ mb: 2, p: 1.5, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
-            {isBerlangsung ? 'Presensi disimpan & pertemuan ditandai selesai!' : 'Presensi berhasil disimpan!'}
-          </Box>
+        {mode === 'catatan' && !isReadOnly && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Isi catatan performa tiap siswa, lalu klik "Selesaikan" untuk menandai pertemuan selesai.
+          </Alert>
         )}
+
         <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell>NIS</TableCell>
               <TableCell>Nama</TableCell>
-              <TableCell>Kehadiran</TableCell>
-              <TableCell>Keterangan</TableCell>
+              {showKehadiran && <TableCell>Kehadiran</TableCell>}
+              {showKehadiran && <TableCell>Keterangan</TableCell>}
+              {mode === 'catatan' && <TableCell>Kehadiran</TableCell>}
               <TableCell>Sisa Kuota</TableCell>
-              <TableCell>Catatan Performa Hari Ini</TableCell>
+              {showCatatan && <TableCell>Catatan Performa Hari Ini</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -121,77 +140,105 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
                 const presensiData = (presensiList as any[]).find((p) => p.siswa_id === siswa.id)
                 const sisa = presensiData?.sisa_pertemuan
                 const kuota = presensiData?.kuota
+                const row = dataSiswa[siswa.id]
 
                 return (
-                <TableRow key={siswa.id}>
-                  <TableCell>{siswa.nis}</TableCell>
-                  <TableCell>{siswa.nama}</TableCell>
-                  <TableCell>
-                    <ToggleButtonGroup
-                      size="small" color="primary" exclusive
-                      disabled={isReadOnly}
-                      value={dataSiswa[siswa.id]?.status || 'hadir'}
-                      onChange={(_, val) => {
-                        if (val) setDataSiswa((prev) => ({
-                          ...prev,
-                          [siswa.id]: {
-                            ...prev[siswa.id],
-                            status: val,
-                            keterangan: val === 'hadir' ? '' : prev[siswa.id]?.keterangan,
-                          },
-                        }))
-                      }}
-                    >
-                      {STATUS_KEHADIRAN.map((sk) => (
-                        <ToggleButton key={sk.value} value={sk.value} sx={{ px: 1.5 }}>
-                          {sk.icon}
-                        </ToggleButton>
-                      ))}
-                    </ToggleButtonGroup>
-                  </TableCell>
-                  <TableCell>
-                    {dataSiswa[siswa.id]?.status !== 'hadir' && (
-                      <TextField size="small" placeholder="Misal: izin, sakit, alpha"
-                        disabled={isReadOnly}
-                        value={dataSiswa[siswa.id]?.keterangan || ''}
-                        onChange={(e) => setDataSiswa((prev) => ({
-                          ...prev,
-                          [siswa.id]: { ...prev[siswa.id], keterangan: e.target.value },
-                        }))}
-                        sx={{ minWidth: 140 }} />
+                  <TableRow key={siswa.id}>
+                    <TableCell>{siswa.nis}</TableCell>
+                    <TableCell>{siswa.nama}</TableCell>
+
+                    {showKehadiran && (
+                      <TableCell>
+                        <ToggleButtonGroup
+                          size="small" color="primary" exclusive
+                          disabled={!editKehadiran}
+                          value={row?.status || 'hadir'}
+                          onChange={(_, val) => {
+                            if (val) setDataSiswa((prev) => ({
+                              ...prev,
+                              [siswa.id]: {
+                                ...prev[siswa.id],
+                                status: val,
+                                keterangan: val === 'hadir' ? '' : prev[siswa.id]?.keterangan,
+                              },
+                            }))
+                          }}
+                        >
+                          {STATUS_KEHADIRAN.map((sk) => (
+                            <ToggleButton key={sk.value} value={sk.value} sx={{ px: 1.5 }}>
+                              {sk.icon}
+                            </ToggleButton>
+                          ))}
+                        </ToggleButtonGroup>
+                      </TableCell>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {sisa !== undefined && kuota !== undefined ? (
-                      <Chip
-                        icon={sisa <= 2 ? <Warning sx={{ fontSize: 14 }} /> : undefined}
-                        label={`${sisa}/${kuota}`}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          ...(sisa <= 0
-                            ? { bgcolor: '#fee2e2', color: '#dc2626' }
-                            : sisa <= 2
-                            ? { bgcolor: '#fef3c7', color: '#b45309' }
-                            : { bgcolor: '#dcfce7', color: '#15803d' }),
-                        }}
-                      />
-                    ) : (
-                      <Typography variant="caption" sx={{ color: '#94a3b8' }}>—</Typography>
+                    {showKehadiran && (
+                      <TableCell>
+                        {row?.status !== 'hadir' && (
+                          <TextField size="small" placeholder="Misal: izin, sakit, alpha"
+                            disabled={isReadOnly}
+                            value={row?.keterangan || ''}
+                            onChange={(e) => setDataSiswa((prev) => ({
+                              ...prev,
+                              [siswa.id]: { ...prev[siswa.id], keterangan: e.target.value },
+                            }))}
+                            sx={{ minWidth: 140 }} />
+                        )}
+                      </TableCell>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <TextField size="small" placeholder="Misal: sudah paham perkalian, perlu latihan soal cerita"
-                      multiline maxRows={2}
-                      disabled={isReadOnly}
-                      value={dataSiswa[siswa.id]?.catatan || ''}
-                      onChange={(e) => setDataSiswa((prev) => ({
-                        ...prev,
-                        [siswa.id]: { ...prev[siswa.id], catatan: e.target.value },
-                      }))}
-                      sx={{ minWidth: 260 }} />
-                  </TableCell>
-                </TableRow>
+
+                    {mode === 'catatan' && (
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={row?.status === 'hadir' ? 'Hadir' : `Tidak Hadir${row?.keterangan ? ` · ${row.keterangan}` : ''}`}
+                          sx={{
+                            fontWeight: 700, borderRadius: '4.5px',
+                            ...(row?.status === 'hadir'
+                              ? { bgcolor: 'rgba(0,182,155,0.2)', color: '#00b69b' }
+                              : { bgcolor: 'rgba(239,56,38,0.16)', color: '#ef3826' }),
+                          }}
+                        />
+                      </TableCell>
+                    )}
+
+                    <TableCell>
+                      {sisa !== undefined && kuota !== undefined ? (
+                        <Chip
+                          icon={sisa <= 2 ? <Warning sx={{ fontSize: 14 }} /> : undefined}
+                          label={`${sisa}/${kuota}`}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            ...(sisa <= 0
+                              ? { bgcolor: '#fee2e2', color: '#dc2626' }
+                              : sisa <= 2
+                                ? { bgcolor: '#fef3c7', color: '#b45309' }
+                                : { bgcolor: '#dcfce7', color: '#15803d' }),
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="caption" sx={{ color: '#94a3b8' }}>—</Typography>
+                      )}
+                    </TableCell>
+
+                    {showCatatan && (
+                      <TableCell>
+                        <TextField size="small"
+                          placeholder={row?.status === 'hadir'
+                            ? 'Misal: sudah paham perkalian, perlu latihan soal cerita'
+                            : 'Siswa tidak hadir'}
+                          multiline maxRows={3} fullWidth
+                          disabled={isReadOnly || row?.status !== 'hadir'}
+                          value={row?.status === 'hadir' ? (row?.catatan || '') : ''}
+                          onChange={(e) => setDataSiswa((prev) => ({
+                            ...prev,
+                            [siswa.id]: { ...prev[siswa.id], catatan: e.target.value },
+                          }))}
+                          sx={{ minWidth: 260 }} />
+                      </TableCell>
+                    )}
+                  </TableRow>
                 )
               })
             )}
@@ -201,10 +248,8 @@ export default function PresensiDialog({ open, onClose, pertemuanId }: Props) {
       <DialogActions>
         <Button onClick={onClose}>Tutup</Button>
         {!isReadOnly && (
-          <Button onClick={handleSave} variant="contained" disabled={save.isPending || selesai.isPending || siswaList.length === 0}>
-            {save.isPending || selesai.isPending
-              ? 'Menyimpan...'
-              : isBerlangsung ? 'Simpan & Tandai Selesai' : 'Simpan Presensi'}
+          <Button onClick={handleSave} variant="contained" disabled={busy || siswaList.length === 0}>
+            {busy ? 'Menyimpan...' : saveLabel}
           </Button>
         )}
       </DialogActions>

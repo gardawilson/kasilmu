@@ -8,7 +8,7 @@ import { Delete, PersonRemove, Add, SwapHoriz } from '@mui/icons-material'
 import { useKelasDetail, useAddSiswaKelas, useRemoveSiswaKelas } from './useKelas'
 import { useSiswa } from '../siswa/useSiswa'
 import {
-  useCreateSiswaPaket, useHargaPaket, useGantiPaket, useDeleteSiswaPaket, useSiswaPaketAktif,
+  useCreateSiswaPaket, useKelasPaket, useGantiPaket, useDeleteSiswaPaket, useSiswaPaketAktif,
 } from '../paket/usePaket'
 import DeleteDialog from '../../components/ui/DeleteDialog'
 import type { HargaPaket, Siswa, SiswaPaket } from '../../types'
@@ -42,13 +42,17 @@ interface Props {
 export default function KelasSiswaDialog({ open, onClose, kelasId }: Props) {
   const { data: detail, isLoading } = useKelasDetail(kelasId ?? 0)
   const { data: allSiswa } = useSiswa({ per_page: 100, belum_berkelas: true })
-  const { data: hargaPaketList } = useHargaPaket(kelasId ?? 0)
+  const { data: kelasPaketList } = useKelasPaket(kelasId ?? 0)
   const add = useAddSiswaKelas(kelasId ?? 0)
   const remove = useRemoveSiswaKelas(kelasId ?? 0)
   const [selectedSiswa, setSelectedSiswa] = useState('')
   const [addError, setAddError] = useState('')
 
-  const hargaPakets = hargaPaketList?.data ?? []
+  const hargaPakets: HargaPaket[] = (kelasPaketList?.data ?? []).map((p) => ({
+    paket_id: p.id,
+    harga: p.harga,
+    paket: p,
+  }))
 
   const handleAdd = async () => {
     if (!selectedSiswa) return

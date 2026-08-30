@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\HargaPaket;
+use App\Models\Paket;
 use App\Models\SiswaPaket;
 use App\Models\Tagihan;
 use Illuminate\Console\Command;
@@ -52,9 +52,7 @@ class TagihanGenerate extends Command
                     );
                 }
 
-                $harga = HargaPaket::where('kelas_id', $nextPaket->kelas_id)
-                    ->where('paket_id', $nextPaket->paket_id)
-                    ->value('harga') ?? 0;
+                $harga = Paket::whereKey($nextPaket->paket_id)->value('harga') ?? 0;
 
                 $tagihan = Tagihan::where('siswa_paket_id', $nextPaket->id)->first()
                     ?? Tagihan::whereNull('siswa_paket_id')

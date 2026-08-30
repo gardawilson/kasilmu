@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Console;
 
-use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Paket;
 use App\Models\Pembayaran;
@@ -20,8 +19,7 @@ class FixOrphanSiswaPaketTest extends TestCase
     {
         $kela = Kela::create(['nama' => "Kelas {$nis}", 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'tarif_per_pertemuan' => 100000, 'status' => 'aktif']);
         $siswa = Siswa::create(['nis' => $nis, 'nama' => "Siswa {$nis}", 'tgl_lahir' => '2010-01-01', 'status' => 'aktif', 'tingkat_id' => $this->tingkatId()]);
-        $paket = Paket::create(['nama' => 'Paket 8x', 'jumlah_pertemuan' => 8]);
-        HargaPaket::create(['kelas_id' => $kela->id, 'paket_id' => $paket->id, 'harga' => 500000]);
+        $paket = Paket::create(['nama' => 'Paket 8x', 'jumlah_pertemuan' => 8, 'kelas_id' => $kela->id, 'harga' => 500000]);
 
         $siswaPaket = SiswaPaket::create([
             'siswa_id' => $siswa->id, 'kelas_id' => $kela->id, 'paket_id' => $paket->id,

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\HargaPaket;
 use App\Models\Paket;
 use App\Models\Siswa;
 use App\Models\SiswaPaket;
@@ -10,6 +9,7 @@ use App\Models\Tagihan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 
 class SiswaPaketController
@@ -50,14 +50,12 @@ class SiswaPaketController
             'tgl_mulai' => 'required|date',
         ]);
 
-        $paket = Paket::findOrFail($validated['paket_id']);
-
-        $hargaPaket = HargaPaket::where('kelas_id', $validated['kelas_id'])
-            ->where('paket_id', $validated['paket_id'])
+        $paket = Paket::where('id', $validated['paket_id'])
+            ->where('kelas_id', $validated['kelas_id'])
             ->first();
 
-        if (! $hargaPaket) {
-            return $this->error('Harga untuk kombinasi kelas dan paket ini belum diatur', 422);
+        if (! $paket) {
+            return $this->error('Paket tidak ditemukan untuk kelas ini', 422);
         }
 
         $validated['tgl_selesai'] = Carbon::parse($validated['tgl_mulai'])
@@ -86,7 +84,7 @@ class SiswaPaketController
             'siswa_id' => $validated['siswa_id'],
             'siswa_paket_id' => $siswaPaket->id,
             'jenis' => 'spp',
-            'jumlah' => $hargaPaket->harga,
+            'jumlah' => $paket->harga,
             'tenggat' => $validated['tgl_mulai'],
             'status' => 'pending',
         ]);
@@ -133,7 +131,10 @@ class SiswaPaketController
         }
 
         $validated = $request->validate([
-            'paket_id' => 'required|exists:pakets,id',
+            'paket_id' => [
+                'required',
+                Rule::exists('pakets', 'id')->where('kelas_id', $siswaPaket->kelas_id),
+            ],
             'tgl_mulai' => 'nullable|date',
         ]);
 
@@ -141,13 +142,7 @@ class SiswaPaketController
             return $this->error('Pilih paket yang berbeda dari paket aktif', 422);
         }
 
-        $hargaPaket = HargaPaket::where('kelas_id', $siswaPaket->kelas_id)
-            ->where('paket_id', $validated['paket_id'])
-            ->first();
-
-        if (! $hargaPaket) {
-            return $this->error('Harga untuk kombinasi kelas dan paket ini belum diatur', 422);
-        }
+        $paket = Paket::whereKey($validated['paket_id'])->first();
 
         $tglMulai = $validated['tgl_mulai'] ?? now()->toDateString();
 
@@ -162,7 +157,7 @@ class SiswaPaketController
         $tglSelesai = Carbon::parse($tglMulai)->addMonthNoOverflow()->toDateString();
 
         try {
-            $paketBaru = DB::transaction(function () use ($siswaPaket, $validated, $hargaPaket, $tglMulai, $tglSelesai) {
+            $paketBaru = DB::transaction(function () use ($siswaPaket, $validated, $paket, $tglMulai, $tglSelesai) {
                 $terjadwal = SiswaPaket::where('siswa_id', $siswaPaket->siswa_id)
                     ->where('kelas_id', $siswaPaket->kelas_id)
                     ->where('status', 'terjadwal')
@@ -192,7 +187,7 @@ class SiswaPaketController
                     'siswa_id' => $siswaPaket->siswa_id,
                     'siswa_paket_id' => $paketBaru->id,
                     'jenis' => 'spp',
-                    'jumlah' => $hargaPaket->harga,
+                    'jumlah' => $paket->harga,
                     'tenggat' => $tglMulai,
                     'status' => 'pending',
                 ]);

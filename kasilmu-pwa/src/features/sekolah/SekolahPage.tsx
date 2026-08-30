@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import {
-  Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, TextField, IconButton, Tooltip, Skeleton,
+  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody,
+  Button, TextField, Skeleton,
 } from '@mui/material'
 import { Add, Edit, Delete, Search, Inbox } from '@mui/icons-material'
 import { useSekolah, useDeleteSekolah } from './useSekolah'
 import SekolahForm from './SekolahForm'
 import DeleteDialog from '../../components/ui/DeleteDialog'
+import RowActions from '../../components/ui/RowActions'
+import PageHeader from '../../components/ui/PageHeader'
+import FilterBar, { filterFieldSx } from '../../components/ui/FilterBar'
+import DataTableCard from '../../components/ui/DataTableCard'
 import type { Sekolah } from '../../types'
 
 export default function SekolahPage() {
@@ -20,28 +24,33 @@ export default function SekolahPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-        <Box>
-          <Typography variant="h5">Data Sekolah</Typography>
-          <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-            Kelola daftar master nama sekolah asal siswa
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
-          Tambah Sekolah
-        </Button>
-      </Box>
+      <PageHeader
+        title="Data Sekolah"
+        subtitle="Kelola daftar master nama sekolah asal siswa"
+        action={
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
+            Tambah Sekolah
+          </Button>
+        }
+      />
 
-      <Paper sx={{ overflow: 'hidden' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9' }}>
-          <TextField
-            placeholder="Cari nama sekolah..." value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            slotProps={{ input: { startAdornment: <Search sx={{ mr: 1, color: '#94a3b8', fontSize: 20 }} /> } }}
-            sx={{ minWidth: 260 }}
-          />
-        </Box>
+      <FilterBar onReset={() => setSearch('')} resetDisabled={search === ''}>
+        <TextField
+          variant="standard"
+          placeholder="Cari nama sekolah..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          slotProps={{
+            input: {
+              disableUnderline: true,
+              startAdornment: <Search sx={{ mr: 1, color: '#94a3b8', fontSize: 18 }} />,
+            },
+          }}
+          sx={{ ...filterFieldSx, minWidth: 240 }}
+        />
+      </FilterBar>
 
+      <DataTableCard minWidth={480}>
         <Table>
           <TableHead>
             <TableRow>
@@ -70,27 +79,21 @@ export default function SekolahPage() {
             ) : (
               data.data.map((sekolah: Sekolah) => (
                 <TableRow key={sekolah.id} hover>
-                  <TableCell sx={{ fontWeight: 500 }}>{sekolah.nama}</TableCell>
-                  <TableCell align="right" sx={{ pr: 1 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => { setEditData(sekolah); setOpen(true) }}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hapus">
-                      <IconButton size="small" onClick={() => setDeleteId(sekolah.id)}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                  <TableCell>{sekolah.nama}</TableCell>
+                  <TableCell align="right" sx={{ pr: 2 }}>
+                    <RowActions
+                      actions={[
+                        { icon: <Edit />, tooltip: 'Edit', onClick: () => { setEditData(sekolah); setOpen(true) } },
+                        { icon: <Delete />, tooltip: 'Hapus', tone: 'error', onClick: () => setDeleteId(sekolah.id) },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-      </Paper>
+      </DataTableCard>
 
       {open && <SekolahForm open={open} onClose={() => { setOpen(false); setEditData(null) }} editData={editData} />}
 

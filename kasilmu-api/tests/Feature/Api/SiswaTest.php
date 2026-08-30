@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Paket;
 use App\Models\Siswa;
@@ -39,9 +38,7 @@ class SiswaTest extends TestCase
 
     private function siswaPayload(int $kelasId): array
     {
-        $paket = Paket::create(['nama' => 'Paket Test', 'jumlah_pertemuan' => 8]);
-
-        HargaPaket::create(['kelas_id' => $kelasId, 'paket_id' => $paket->id, 'harga' => 500000]);
+        $paket = Paket::create(['nama' => 'Paket Test', 'jumlah_pertemuan' => 8, 'kelas_id' => $kelasId, 'harga' => 500000]);
 
         return [
             'nama' => 'Siswa Test', 'tgl_lahir' => '2010-01-01', 'status' => 'aktif',
@@ -138,7 +135,7 @@ class SiswaTest extends TestCase
             'nis' => '20260099', 'nama' => 'Siswa Terjadwal', 'tgl_lahir' => '2010-01-01',
             'status' => 'aktif', 'tingkat_id' => $this->tingkatId(),
         ]);
-        $paket = Paket::create(['nama' => 'Paket Lain', 'jumlah_pertemuan' => 8]);
+        $paket = Paket::create(['nama' => 'Paket Lain', 'jumlah_pertemuan' => 8, 'kelas_id' => $kela->id, 'harga' => 500000]);
         SiswaPaket::create([
             'siswa_id' => $siswaTerjadwal->id, 'kelas_id' => $kela->id, 'paket_id' => $paket->id,
             'tgl_mulai' => now()->addMonth()->toDateString(), 'tgl_selesai' => now()->addMonths(2)->toDateString(),

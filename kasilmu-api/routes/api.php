@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\HargaPaketController;
 use App\Http\Controllers\Api\JenjangController;
 use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\LaporanController;
@@ -49,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('laporan/keuangan', [LaporanController::class, 'keuangan']);
         Route::get('laporan/siswa', [LaporanController::class, 'siswa']);
         Route::get('laporan/kehadiran', [LaporanController::class, 'kehadiran']);
+        Route::get('laporan/kehadiran/{siswa}/detail', [LaporanController::class, 'kehadiranDetail']);
+        Route::get('laporan/kehadiran-pengajar', [LaporanController::class, 'kehadiranPengajar']);
+        Route::get('laporan/kehadiran-pengajar/{tutor}/detail', [LaporanController::class, 'kehadiranPengajarDetail']);
         Route::get('laporan/gaji', [LaporanController::class, 'gaji']);
         Route::get('dashboard', [DashboardController::class, 'index']);
         Route::apiResource('paket', PaketController::class);
@@ -63,8 +65,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('siswa/{siswa}/paket', [SiswaPaketController::class, 'aktif']);
         Route::put('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'update']);
         Route::delete('siswa-paket/{siswaPaket}', [SiswaPaketController::class, 'destroy']);
-        Route::get('harga-paket', [HargaPaketController::class, 'index']);
-        Route::post('harga-paket', [HargaPaketController::class, 'store']);
         Route::apiResource('user', UserController::class)->except('show');
     });
 

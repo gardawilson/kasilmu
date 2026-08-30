@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControlLabel, IconButton, Paper, Switch, Table, TableBody, TableCell,
-  TableHead, TableRow, TextField, Tooltip, Typography,
+  FormControlLabel, Paper, Switch, Table, TableBody, TableCell,
+  TableHead, TableRow, TextField, Typography,
 } from '@mui/material'
 import { Add, Delete, Edit, School } from '@mui/icons-material'
 import { useForm } from 'react-hook-form'
 import DeleteDialog from '../../components/ui/DeleteDialog'
+import RowActions from '../../components/ui/RowActions'
+import PageHeader from '../../components/ui/PageHeader'
+import StatusChip from '../../components/ui/StatusChip'
 import type { Jenjang, Tingkat } from '../../types'
 import {
   useCreateJenjang, useCreateTingkat, useDeleteJenjang, useDeleteTingkat,
@@ -40,17 +43,15 @@ export default function PendidikanPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-        <Box>
-          <Typography variant="h5">Jenjang & Tingkat</Typography>
-          <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-            Kelola pilihan pendidikan yang digunakan pada data siswa
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setJenjangForm(null)}>
-          Tambah Jenjang
-        </Button>
-      </Box>
+      <PageHeader
+        title="Jenjang & Tingkat"
+        subtitle="Kelola pilihan pendidikan yang digunakan pada data siswa"
+        action={
+          <Button variant="contained" startIcon={<Add />} onClick={() => setJenjangForm(null)}>
+            Tambah Jenjang
+          </Button>
+        }
+      />
 
       {deleteError && <Alert severity="error" sx={{ mb: 2 }}>{deleteError}</Alert>}
 
@@ -64,20 +65,19 @@ export default function PendidikanPage() {
       ) : (
         <Box sx={{ display: 'grid', gap: 2 }}>
           {data.data.map((jenjang) => (
-            <Paper key={jenjang.id} sx={{ overflow: 'hidden' }}>
+            <Paper key={jenjang.id} sx={{ overflow: 'hidden', border: '0.3px solid #b9b9b9', borderRadius: '14px' }}>
               <Box sx={{
                 px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5,
-                bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+                bgcolor: '#fcfdfd', borderBottom: '0.6px solid #d5d5d5',
               }}>
                 <Chip label={jenjang.kode} color="primary" size="small" sx={{ fontWeight: 700 }} />
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={{ fontWeight: 700 }}>{jenjang.nama}</Typography>
                   <Typography variant="caption" color="text.secondary">Urutan {jenjang.urutan}</Typography>
                 </Box>
-                <Chip
+                <StatusChip
                   label={jenjang.is_active ? 'Aktif' : 'Nonaktif'}
-                  size="small"
-                  color={jenjang.is_active ? 'success' : 'default'}
+                  tone={jenjang.is_active ? 'green' : 'orange'}
                 />
                 <Button
                   size="small"
@@ -86,20 +86,17 @@ export default function PendidikanPage() {
                 >
                   Tambah Tingkat
                 </Button>
-                <Tooltip title="Edit jenjang">
-                  <IconButton size="small" onClick={() => setJenjangForm(jenjang)}>
-                    <Edit fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Hapus jenjang">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => setDeleteTarget({ type: 'jenjang', id: jenjang.id, nama: jenjang.nama })}
-                  >
-                    <Delete fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <RowActions
+                  actions={[
+                    { icon: <Edit />, tooltip: 'Edit jenjang', onClick: () => setJenjangForm(jenjang) },
+                    {
+                      icon: <Delete />,
+                      tooltip: 'Hapus jenjang',
+                      tone: 'error',
+                      onClick: () => setDeleteTarget({ type: 'jenjang', id: jenjang.id, nama: jenjang.nama }),
+                    },
+                  ]}
+                />
               </Box>
 
               <Table size="small">
@@ -123,32 +120,27 @@ export default function PendidikanPage() {
                       <TableCell sx={{ fontWeight: 600 }}>{tingkat.nama}</TableCell>
                       <TableCell>{tingkat.urutan}</TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
                           label={tingkat.is_active ? 'Aktif' : 'Nonaktif'}
-                          size="small"
-                          color={tingkat.is_active ? 'success' : 'default'}
+                          tone={tingkat.is_active ? 'green' : 'orange'}
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="Edit tingkat">
-                          <IconButton
-                            size="small"
-                            onClick={() => setTingkatForm({ jenjangId: jenjang.id, data: tingkat })}
-                          >
-                            <Edit fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Hapus tingkat">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => setDeleteTarget({
-                              type: 'tingkat', id: tingkat.id, nama: tingkat.nama,
-                            })}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <RowActions
+                          actions={[
+                            {
+                              icon: <Edit />,
+                              tooltip: 'Edit tingkat',
+                              onClick: () => setTingkatForm({ jenjangId: jenjang.id, data: tingkat }),
+                            },
+                            {
+                              icon: <Delete />,
+                              tooltip: 'Hapus tingkat',
+                              tone: 'error',
+                              onClick: () => setDeleteTarget({ type: 'tingkat', id: tingkat.id, nama: tingkat.nama }),
+                            },
+                          ]}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

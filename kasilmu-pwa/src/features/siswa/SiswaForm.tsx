@@ -7,7 +7,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { useCreateSiswa, useUpdateSiswa } from './useSiswa'
 import { useKelas } from '../kelas/useKelas'
 import { useSekolah, useCreateSekolah } from '../sekolah/useSekolah'
-import { usePaketList, useHargaPaket } from '../paket/usePaket'
+import { useKelasPaket } from '../paket/usePaket'
 import { useJenjang } from '../pendidikan/usePendidikan'
 import type { Siswa } from '../../types'
 
@@ -15,6 +15,7 @@ interface Props {
   open: boolean
   onClose: () => void
   editData?: Siswa | null
+  onDelete?: () => void
 }
 
 type SiswaFormData = Partial<Siswa> & {
@@ -47,7 +48,7 @@ function formatDate(value: string) {
   })
 }
 
-export default function SiswaForm({ open, onClose, editData }: Props) {
+export default function SiswaForm({ open, onClose, editData, onDelete }: Props) {
   const { control, register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<SiswaFormData>()
   const create = useCreateSiswa()
   const update = useUpdateSiswa(editData?.id || 0)
@@ -64,10 +65,9 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
   const { data: kelasList } = useKelas({ status: editData ? undefined : 'aktif', per_page: 100 })
   const { data: jenjangList } = useJenjang(!!editData)
   const { data: sekolahList } = useSekolah()
-  const { data: paketList } = usePaketList({ per_page: 100 })
-  const { data: hargaPaketList } = useHargaPaket(Number(selectedKelasId) || 0)
+  const { data: kelasPaketList } = useKelasPaket(Number(selectedKelasId) || 0)
   const selectedKelas = kelasList?.data?.find((k) => k.id === Number(selectedKelasId))
-  const selectedHargaPaket = hargaPaketList?.data?.find((h) => h.paket_id === Number(selectedPaketId))
+  const selectedPaket = kelasPaketList?.data?.find((p) => p.id === Number(selectedPaketId))
   const selectedJenjang = jenjangList?.data?.find((j) => j.id === Number(selectedJenjangId))
   const editPaketAktif = editData?.siswa_pakets?.[0]
   const editKelasAktif = editData?.kelas?.find((kelas) => kelas.id === editPaketAktif?.kelas_id)
@@ -278,8 +278,10 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
                   : errors.paket_id?.message}
                 slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
                 <MenuItem value="" disabled>-- Pilih Paket --</MenuItem>
-                {paketList?.data?.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>{p.nama} ({p.jumlah_pertemuan}x pertemuan)</MenuItem>
+                {kelasPaketList?.data?.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.nama} ({p.jumlah_pertemuan}x) — Rp {Number(p.harga).toLocaleString('id-ID')}
+                  </MenuItem>
                 ))}
               </TextField>
             )}
@@ -300,22 +302,21 @@ export default function SiswaForm({ open, onClose, editData }: Props) {
               Presensi hadir dalam periode ini akan mengurangi kuota.
             </Alert>
           )}
-          {!editData && selectedKelasId && selectedPaketId && (
-            selectedHargaPaket ? (
-              <Alert severity="success" sx={{ mt: 1 }}>
-                Tagihan yang akan dibuat: <strong>Rp {Number(selectedHargaPaket.harga).toLocaleString('id-ID')}</strong>
-              </Alert>
-            ) : (
-              <Alert severity="warning" sx={{ mt: 1 }}>
-                Harga untuk kombinasi kelas dan paket ini belum diatur. Atur dulu lewat "Atur Paket" pada halaman Kelas.
-              </Alert>
-            )
+          {!editData && selectedKelasId && selectedPaketId && selectedPaket && (
+            <Alert severity="success" sx={{ mt: 1 }}>
+              Tagihan yang akan dibuat: <strong>Rp {Number(selectedPaket.harga).toLocaleString('id-ID')}</strong>
+            </Alert>
           )}
         </DialogContent>
         <DialogActions>
+          {editData && onDelete && (
+            <Button color="error" onClick={onDelete} sx={{ mr: 'auto' }}>
+              Hapus
+            </Button>
+          )}
           <Button onClick={onClose}>Batal</Button>
           <Button type="submit" variant="contained"
-            disabled={create.isPending || update.isPending || (!editData && !!selectedPaketId && !selectedHargaPaket)}>
+            disabled={create.isPending || update.isPending || (!editData && !!selectedPaketId && !selectedPaket)}>
             {editData ? 'Update' : 'Simpan'}
           </Button>
         </DialogActions>

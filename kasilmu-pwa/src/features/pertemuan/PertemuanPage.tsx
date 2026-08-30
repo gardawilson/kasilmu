@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import {
-  Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, TextField, IconButton, MenuItem, Chip, Tooltip, Skeleton,
+  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody,
+  Button, TextField, MenuItem, Tooltip, Skeleton,
   Dialog, DialogTitle, DialogContent, DialogActions, Alert,
 } from '@mui/material'
-import { Add, Edit, Delete, HowToReg, Inbox, PlayArrow } from '@mui/icons-material'
+import { Add, HowToReg, Inbox, PlayArrow } from '@mui/icons-material'
 import { usePertemuan, useDeletePertemuan, useMulaiPertemuan } from './usePertemuan'
 import { useKelas } from '../kelas/useKelas'
 import { usePengajar } from '../pengajar/usePengajar'
@@ -12,6 +12,10 @@ import { useAuth } from '../auth/useAuth'
 import PertemuanForm from './PertemuanForm'
 import PresensiDialog from './PresensiDialog'
 import DeleteDialog from '../../components/ui/DeleteDialog'
+import PageHeader from '../../components/ui/PageHeader'
+import FilterBar, { filterFieldSx, filterFieldSlotProps } from '../../components/ui/FilterBar'
+import DataTableCard from '../../components/ui/DataTableCard'
+import StatusChip from '../../components/ui/StatusChip'
 import type { Pertemuan } from '../../types'
 
 function today() {
@@ -107,51 +111,64 @@ export default function PertemuanPage() {
   const [editData, setEditData] = useState<Pertemuan | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [presensiId, setPresensiId] = useState<number | null>(null)
+  const [presensiMode, setPresensiMode] = useState<'absensi' | 'catatan' | 'full'>('full')
 
   const { data: kelas } = useKelas({ per_page: 100 })
   const { data, isLoading } = usePertemuan({ kelas_id: kelasFilter, tgl: tglFilter })
   const del = useDeletePertemuan()
 
+  const filterActive = kelasFilter !== '' || tglFilter !== today()
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-        <Box>
-          <Typography variant="h5">Presensi</Typography>
-          <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-            Input kelas yang Anda ajar untuk mulai mengisi presensi
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {!isAdmin && (
-            <Button variant="contained" startIcon={<PlayArrow />} onClick={() => setMulaiOpen(true)}>
-              Mulai Mengajar
-            </Button>
-          )}
-          {isAdmin && (
-            <Button variant="outlined" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
-              Tambah Pertemuan
-            </Button>
-          )}
-        </Box>
-      </Box>
+      <PageHeader
+        title="Presensi"
+        subtitle="Input kelas yang Anda ajar untuk mulai mengisi presensi"
+        action={
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {!isAdmin && (
+              <Button variant="contained" startIcon={<PlayArrow />} onClick={() => setMulaiOpen(true)}>
+                Mulai Mengajar
+              </Button>
+            )}
+            {isAdmin && (
+              <Button variant="outlined" startIcon={<Add />} onClick={() => { setEditData(null); setOpen(true) }}>
+                Tambah Pertemuan
+              </Button>
+            )}
+          </Box>
+        }
+      />
 
-      <Paper sx={{ overflow: 'hidden' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 2 }}>
-          <TextField label="Tanggal" type="date" value={tglFilter}
-            onChange={(e) => setTglFilter(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 180 }} />
-          <TextField select label="Filter Kelas" value={kelasFilter}
-            onChange={(e) => setKelasFilter(e.target.value)} sx={{ minWidth: 220 }}>
-            <MenuItem value="">Semua Kelas</MenuItem>
-            {kelas?.data?.map((k) => (
-              <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
-            ))}
-          </TextField>
-          {tglFilter && (
-            <Button onClick={() => setTglFilter('')} sx={{ alignSelf: 'center' }}>Lihat Semua Tanggal</Button>
-          )}
-        </Box>
+      <FilterBar
+        onReset={() => { setTglFilter(today()); setKelasFilter('') }}
+        resetDisabled={!filterActive}
+      >
+        <TextField
+          type="date" variant="standard" value={tglFilter}
+          onChange={(e) => setTglFilter(e.target.value)}
+          slotProps={{ ...filterFieldSlotProps, inputLabel: { shrink: true } }}
+          sx={{ ...filterFieldSx, minWidth: 150 }}
+        />
+        <TextField
+          select variant="standard" value={kelasFilter}
+          onChange={(e) => setKelasFilter(e.target.value)}
+          slotProps={filterFieldSlotProps}
+          sx={{ ...filterFieldSx, minWidth: 180 }}
+        >
+          <MenuItem value="">Semua Kelas</MenuItem>
+          {kelas?.data?.map((k) => (
+            <MenuItem key={k.id} value={k.id}>{k.nama}</MenuItem>
+          ))}
+        </TextField>
+        {tglFilter && (
+          <Button onClick={() => setTglFilter('')} sx={{ fontSize: 14, fontWeight: 600 }}>
+            Lihat Semua Tanggal
+          </Button>
+        )}
+      </FilterBar>
 
+      <DataTableCard>
         <Table>
           <TableHead>
             <TableRow>
@@ -161,21 +178,20 @@ export default function PertemuanPage() {
               <TableCell>Tanggal</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="center">Presensi</TableCell>
-              <TableCell align="right" sx={{ pr: 2 }}>Aksi</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(7)].map((_, j) => (
+                  {[...Array(6)].map((_, j) => (
                     <TableCell key={j}><Skeleton variant="rounded" height={20} /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : !data?.data?.length ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={6}>
                   <Box sx={{ py: 8, textAlign: 'center' }}>
                     <Inbox sx={{ fontSize: 40, color: '#cbd5e1', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ fontWeight: 500 }}>
@@ -185,80 +201,80 @@ export default function PertemuanPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              data.data.map((p: Pertemuan) => (
-                <TableRow key={p.id} hover>
-                  <TableCell sx={{ fontWeight: 600 }}>{p.kelas?.nama ?? '—'}</TableCell>
-                  <TableCell sx={{ color: '#475569' }}>{p.tutor?.nama ?? '—'}</TableCell>
+              data.data.map((p: Pertemuan) => {
+                const canEdit = isOwnPertemuan(p)
+                return (
+                <TableRow
+                  key={p.id}
+                  hover
+                  onClick={canEdit ? () => { setEditData(p); setOpen(true) } : undefined}
+                  sx={{ cursor: canEdit ? 'pointer' : 'default' }}
+                >
+                  <TableCell>{p.kelas?.nama ?? '—'}</TableCell>
+                  <TableCell>{p.tutor?.nama ?? '—'}</TableCell>
                   <TableCell>
                     <Box sx={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: 28, height: 28, borderRadius: '50%',
-                      bgcolor: '#06b6d412', color: '#0891b2', fontWeight: 700, fontSize: 13,
+                      bgcolor: 'rgba(72,128,255,0.14)', color: '#4880ff', fontWeight: 700, fontSize: 13,
                     }}>
                       {p.pertemuan_ke}
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: '#475569', fontWeight: 500 }}>
+                  <TableCell>
                     {new Date(p.tgl).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </TableCell>
                   <TableCell>
-                    <Chip label={p.status} size="small" sx={{
-                      fontWeight: 600,
-                      ...(p.status === 'selesai'
-                        ? { bgcolor: '#dcfce7', color: '#15803d' }
-                        : p.status === 'berlangsung'
-                        ? { bgcolor: '#fef3c7', color: '#b45309' }
-                        : { bgcolor: '#f1f5f9', color: '#475569' }),
-                    }} />
+                    <StatusChip
+                      label={p.status}
+                      tone={p.status === 'selesai' ? 'green' : p.status === 'berlangsung' ? 'orange' : 'grey'}
+                    />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title={p.status === 'berlangsung' ? 'Isi Presensi & Tandai Selesai' : 'Lihat / Edit Presensi'}>
+                    <Tooltip title={p.status === 'berlangsung' ? 'Isi catatan performa & tandai selesai' : 'Lihat / edit presensi & catatan'}>
                       <Button size="small" variant={p.status === 'berlangsung' ? 'contained' : 'outlined'}
                         startIcon={<HowToReg sx={{ fontSize: 14 }} />}
-                        onClick={() => setPresensiId(p.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setPresensiMode(p.status === 'berlangsung' ? 'catatan' : 'full')
+                          setPresensiId(p.id)
+                        }}
                         sx={p.status === 'berlangsung' ? { fontSize: 12, py: 0.5 } : {
-                          borderColor: '#e2e8f0', color: '#475569', fontSize: 12, py: 0.5,
-                          '&:hover': { borderColor: '#0d9488', color: '#0d9488', bgcolor: '#0d94880a' },
+                          borderColor: '#e2e8f0', color: '#606060', fontSize: 12, py: 0.5,
+                          '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'rgba(72,128,255,0.06)' },
                         }}>
                         {p.status === 'berlangsung' ? 'Selesaikan' : 'Presensi'}
                       </Button>
                     </Tooltip>
                   </TableCell>
-                  <TableCell align="right" sx={{ pr: 1 }}>
-                    {isOwnPertemuan(p) ? (
-                      <>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => { setEditData(p); setOpen(true) }}
-                            sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
-                            <Edit fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Hapus">
-                          <IconButton size="small" onClick={() => setDeleteId(p.id)}
-                            sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </>
-                    ) : (
-                      <Typography variant="caption" sx={{ color: '#cbd5e1' }}>—</Typography>
-                    )}
-                  </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>
-      </Paper>
+      </DataTableCard>
 
       <MulaiMengajarDialog
         open={mulaiOpen}
         onClose={() => setMulaiOpen(false)}
-        onStarted={(id) => setPresensiId(id)}
+        onStarted={(id) => { setPresensiMode('absensi'); setPresensiId(id) }}
       />
 
-      {open && <PertemuanForm open={open} onClose={() => { setOpen(false); setEditData(null) }} editData={editData} />}
-      <PresensiDialog open={!!presensiId} onClose={() => setPresensiId(null)} pertemuanId={presensiId} />
+      {open && (
+        <PertemuanForm
+          open={open}
+          onClose={() => { setOpen(false); setEditData(null) }}
+          editData={editData}
+          onDelete={editData ? () => { const id = editData.id; setOpen(false); setDeleteId(id) } : undefined}
+        />
+      )}
+      <PresensiDialog
+        open={!!presensiId}
+        onClose={() => setPresensiId(null)}
+        pertemuanId={presensiId}
+        mode={presensiMode}
+      />
 
       <DeleteDialog
         open={!!deleteId} title="Hapus Pertemuan"

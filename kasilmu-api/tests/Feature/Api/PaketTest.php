@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\HargaPaket;
 use App\Models\Kela;
 use App\Models\Paket;
 use App\Models\Siswa;
@@ -37,10 +36,8 @@ class PaketTest extends TestCase
             'nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika',
             'kapasitas' => 10, 'status' => 'aktif',
         ]);
-        $paketAktif = Paket::create(['nama' => 'Paket 12x', 'jumlah_pertemuan' => 12]);
-        $paketBaru = Paket::create(['nama' => 'Paket 16x', 'jumlah_pertemuan' => 16]);
-        HargaPaket::create(['kelas_id' => $kela->id, 'paket_id' => $paketAktif->id, 'harga' => 500000]);
-        HargaPaket::create(['kelas_id' => $kela->id, 'paket_id' => $paketBaru->id, 'harga' => 650000]);
+        $paketAktif = Paket::create(['nama' => 'Paket 12x', 'jumlah_pertemuan' => 12, 'kelas_id' => $kela->id, 'harga' => 500000]);
+        $paketBaru = Paket::create(['nama' => 'Paket 16x', 'jumlah_pertemuan' => 16, 'kelas_id' => $kela->id, 'harga' => 650000]);
         $siswa = Siswa::create([
             'nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01',
             'tingkat_id' => $this->tingkatId(), 'status' => 'aktif',
@@ -61,11 +58,21 @@ class PaketTest extends TestCase
         return compact('kela', 'paketAktif', 'paketBaru', 'siswa', 'siswaPaket');
     }
 
+    private function kelaId(): int
+    {
+        return Kela::create([
+            'nama' => 'Kelas '.uniqid(), 'mata_pelajaran' => 'Matematika',
+            'kapasitas' => 10, 'status' => 'aktif',
+        ])->id;
+    }
+
     public function test_create_paket()
     {
         $response = $this->actingAs($this->auth())->postJson('/api/paket', [
+            'kelas_id' => $this->kelaId(),
             'nama' => 'Paket 12x Pertemuan',
             'jumlah_pertemuan' => 12,
+            'harga' => 500000,
         ]);
 
         $response->assertStatus(201)
@@ -82,7 +89,8 @@ class PaketTest extends TestCase
     public function test_index_paket()
     {
         $this->actingAs($this->auth())->postJson('/api/paket', [
-            'nama' => 'Paket 16x Pertemuan', 'jumlah_pertemuan' => 16,
+            'kelas_id' => $this->kelaId(), 'nama' => 'Paket 16x Pertemuan',
+            'jumlah_pertemuan' => 16, 'harga' => 650000,
         ]);
 
         $response = $this->actingAs($this->auth())->getJson('/api/paket');
@@ -94,11 +102,12 @@ class PaketTest extends TestCase
     public function test_update_paket()
     {
         $this->actingAs($this->auth())->postJson('/api/paket', [
-            'nama' => 'Old Name', 'jumlah_pertemuan' => 12,
+            'kelas_id' => $this->kelaId(), 'nama' => 'Old Name',
+            'jumlah_pertemuan' => 12, 'harga' => 500000,
         ]);
 
         $response = $this->actingAs($this->auth())->putJson('/api/paket/1', [
-            'nama' => 'New Name', 'jumlah_pertemuan' => 12,
+            'nama' => 'New Name', 'jumlah_pertemuan' => 12, 'harga' => 550000,
         ]);
 
         $response->assertStatus(200)
@@ -108,7 +117,8 @@ class PaketTest extends TestCase
     public function test_delete_paket()
     {
         $this->actingAs($this->auth())->postJson('/api/paket', [
-            'nama' => 'Test', 'jumlah_pertemuan' => 12,
+            'kelas_id' => $this->kelaId(), 'nama' => 'Test',
+            'jumlah_pertemuan' => 12, 'harga' => 500000,
         ]);
 
         $response = $this->actingAs($this->auth())->deleteJson('/api/paket/1');
@@ -119,11 +129,12 @@ class PaketTest extends TestCase
 
     public function test_delete_paket_yang_masih_dipakai_ditolak()
     {
+        $kela = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
         $this->actingAs($this->auth())->postJson('/api/paket', [
-            'nama' => 'Test', 'jumlah_pertemuan' => 12,
+            'kelas_id' => $kela->id, 'nama' => 'Test',
+            'jumlah_pertemuan' => 12, 'harga' => 500000,
         ]);
 
-        $kela = Kela::create(['nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika', 'kapasitas' => 10, 'status' => 'aktif']);
         $siswa = Siswa::create([
             'nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01',
             'tingkat_id' => $this->tingkatId(), 'status' => 'aktif',
@@ -146,8 +157,7 @@ class PaketTest extends TestCase
             'nama' => 'Kelas A', 'mata_pelajaran' => 'Matematika',
             'kapasitas' => 10, 'status' => 'aktif',
         ]);
-        $paket = Paket::create(['nama' => 'Paket 12x', 'jumlah_pertemuan' => 12]);
-        HargaPaket::create(['kelas_id' => $kela->id, 'paket_id' => $paket->id, 'harga' => 500000]);
+        $paket = Paket::create(['nama' => 'Paket 12x', 'jumlah_pertemuan' => 12, 'kelas_id' => $kela->id, 'harga' => 500000]);
         $siswa = Siswa::create([
             'nis' => '20260001', 'nama' => 'Siswa A', 'tgl_lahir' => '2010-01-01',
             'tingkat_id' => $this->tingkatId(), 'status' => 'aktif',
@@ -264,11 +274,9 @@ class PaketTest extends TestCase
     public function test_ganti_paket_membatalkan_paket_terjadwal_yang_belum_dibayar()
     {
         $context = $this->paketAktifContext();
-        $paketLain = Paket::create(['nama' => 'Paket 20x', 'jumlah_pertemuan' => 20]);
-        HargaPaket::create([
-            'kelas_id' => $context['kela']->id,
-            'paket_id' => $paketLain->id,
-            'harga' => 800000,
+        $paketLain = Paket::create([
+            'nama' => 'Paket 20x', 'jumlah_pertemuan' => 20,
+            'kelas_id' => $context['kela']->id, 'harga' => 800000,
         ]);
         $terjadwal = SiswaPaket::create([
             'siswa_id' => $context['siswa']->id,
