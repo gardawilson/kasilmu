@@ -44,7 +44,13 @@ class SiswaController
                 ->whereDoesntHave('siswaPakets', fn ($q) => $q->whereIn('status', ['aktif', 'terjadwal']));
         }
 
-        return $this->paginated($query->latest()->paginate($request->per_page ?? 10));
+        if ($request->sort === 'nama') {
+            $query->orderBy('nama', $request->order === 'desc' ? 'desc' : 'asc');
+        } else {
+            $query->latest();
+        }
+
+        return $this->paginated($query->paginate($request->per_page ?? 10));
     }
 
     private function generateNis(): string
@@ -172,7 +178,31 @@ class SiswaController
         ]);
 
         unset($validated['jenjang_id']);
+
+        $statusLama = $siswa->status;
         $siswa->update($validated);
+
+        // Status jadi nonaktif => keluarkan dari semua kelas + bersihkan paket
+        // (tagihan tanpa pembayaran ikut dihapus; yang sudah dibayar tetap).
+        if (($validated['status'] ?? null) === 'nonaktif' && $statusLama !== 'nonaktif') {
+            DB::transaction(function () use ($siswa) {
+                $kelasIds = $siswa->kelas()->pluck('kelas.id');
+
+                SiswaPaket::where('siswa_id', $siswa->id)
+                    ->whereIn('kelas_id', $kelasIds)
+                    ->get()
+                    ->each(function (SiswaPaket $siswaPaket) {
+                        if ($siswaPaket->tagihan?->pembayarans()->exists()) {
+                            return;
+                        }
+
+                        $siswaPaket->tagihan()->delete();
+                        $siswaPaket->delete();
+                    });
+
+                $siswa->kelas()->detach();
+            });
+        }
 
         return $this->success($siswa->load('tingkat.jenjang'), 'Siswa berhasil diperbarui');
     }

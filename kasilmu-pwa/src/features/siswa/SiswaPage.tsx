@@ -143,18 +143,25 @@ export default function SiswaPage() {
   const [perPage] = useState(12);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [order, setOrder] = useState<"" | "asc" | "desc">("asc");
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState<Siswa | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const { data, isLoading } = useSiswa({ search, status, page, per_page: perPage });
+  const { data, isLoading } = useSiswa({
+    search,
+    status,
+    page,
+    per_page: perPage,
+    ...(order ? { sort: "nama" as const, order } : {}),
+  });
   const del = useDeleteSiswa();
 
   const total = data?.meta?.total ?? 0;
   const lastPage = data?.meta?.last_page ?? 1;
   const from = total === 0 ? 0 : (page - 1) * perPage + 1;
   const to = Math.min(page * perPage, total);
-  const filterActive = search !== "" || status !== "";
+  const filterActive = search !== "" || status !== "" || order !== "asc";
 
   return (
     <Box>
@@ -181,6 +188,7 @@ export default function SiswaPage() {
         onReset={() => {
           setSearch("");
           setStatus("");
+          setOrder("asc");
           setPage(1);
         }}
         resetDisabled={!filterActive}
@@ -217,7 +225,21 @@ export default function SiswaPage() {
           <MenuItem value="">Semua Status</MenuItem>
           <MenuItem value="aktif">Aktif</MenuItem>
           <MenuItem value="nonaktif">Nonaktif</MenuItem>
-          <MenuItem value="lulus">Lulus</MenuItem>
+        </TextField>
+        <TextField
+          select
+          variant="standard"
+          value={order}
+          onChange={(e) => {
+            setOrder(e.target.value as "" | "asc" | "desc");
+            setPage(1);
+          }}
+          slotProps={filterFieldSlotProps}
+          sx={filterFieldSx}
+        >
+          <MenuItem value="asc">Nama A–Z</MenuItem>
+          <MenuItem value="desc">Nama Z–A</MenuItem>
+          <MenuItem value="">Terbaru</MenuItem>
         </TextField>
       </FilterBar>
 

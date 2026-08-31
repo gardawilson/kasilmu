@@ -6,11 +6,17 @@ interface Props {
   title: string
   description?: string
   loading?: boolean
+  /** Label tombol konfirmasi (default "Hapus"). */
+  confirmLabel?: string
+  /** Label tombol saat proses berjalan (default "Menghapus..."). */
+  loadingLabel?: string
   onClose: () => void
   onConfirm: () => void
 }
 
-export default function DeleteDialog({ open, title, description, loading, onClose, onConfirm }: Props) {
+export default function DeleteDialog({
+  open, title, description, loading, confirmLabel = 'Hapus', loadingLabel = 'Menghapus...', onClose, onConfirm,
+}: Props) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
       slotProps={{ paper: { sx: { borderRadius: 3 } } }}>
@@ -37,7 +43,7 @@ export default function DeleteDialog({ open, title, description, loading, onClos
           Batal
         </Button>
         <Button onClick={onConfirm} variant="contained" color="error" disabled={loading}>
-          {loading ? 'Menghapus...' : 'Hapus'}
+          {loading ? loadingLabel : confirmLabel}
         </Button>
       </DialogActions>
     </Dialog>

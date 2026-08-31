@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   TextField, MenuItem, Alert, Autocomplete,
+  Stepper, Step, StepLabel,
 } from '@mui/material'
 import { Controller, useForm } from 'react-hook-form'
+import DeleteDialog from '../../components/ui/DeleteDialog'
 import { useCreateSiswa, useUpdateSiswa } from './useSiswa'
 import { useKelas } from '../kelas/useKelas'
 import { useSekolah, useCreateSekolah } from '../sekolah/useSekolah'
@@ -49,12 +51,20 @@ function formatDate(value: string) {
 }
 
 export default function SiswaForm({ open, onClose, editData, onDelete }: Props) {
-  const { control, register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<SiswaFormData>()
+  const { control, register, handleSubmit, reset, setValue, watch, trigger, formState: { errors } } = useForm<SiswaFormData>()
   const create = useCreateSiswa()
   const update = useUpdateSiswa(editData?.id || 0)
   const createSekolah = useCreateSekolah()
   const [submitError, setSubmitError] = useState('')
   const [sekolahNama, setSekolahNama] = useState('')
+  const [activeStep, setActiveStep] = useState(0)
+  const [nonaktifWarnOpen, setNonaktifWarnOpen] = useState(false)
+
+  // Mode tambah = wizard 2 langkah; mode edit hanya data siswa.
+  // Kelas/paket/tanggal mulai hanya diatur lewat menu Kelas → Atur Siswa.
+  const wizard = !editData
+  const showDataSiswa = !wizard || activeStep === 0
+  const showKelasPaket = wizard && activeStep === 1
 
   const selectedJenjangId = watch('jenjang_id')
   const selectedTingkatId = watch('tingkat_id')
@@ -79,6 +89,7 @@ export default function SiswaForm({ open, onClose, editData, onDelete }: Props) 
   useEffect(() => {
     if (open) {
       setSubmitError('')
+      setActiveStep(0)
       if (editData) {
         reset({
           ...editData,
@@ -116,7 +127,17 @@ export default function SiswaForm({ open, onClose, editData, onDelete }: Props) 
     if (!tersedia) setValue('tingkat_id', undefined)
   }, [selectedJenjang, selectedTingkatId, setValue])
 
+  const handleNext = async () => {
+    const ok = await trigger(['nama', 'tgl_lahir', 'jenjang_id', 'tingkat_id'])
+    if (ok) setActiveStep(1)
+  }
+
   const onSubmit = async (data: SiswaFormData) => {
+    // Enter di langkah 1 → maju, jangan submit.
+    if (wizard && activeStep === 0) {
+      await handleNext()
+      return
+    }
     setSubmitError('')
     try {
       const nama = sekolahNama.trim()
@@ -145,6 +166,16 @@ export default function SiswaForm({ open, onClose, editData, onDelete }: Props) 
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
           {submitError && <Alert severity="error" sx={{ mb: 2 }}>{submitError}</Alert>}
+
+          {wizard && (
+            <Stepper activeStep={activeStep} sx={{ mb: 3, mt: 1 }}>
+              <Step><StepLabel>Data Siswa</StepLabel></Step>
+              <Step><StepLabel>Kelas &amp; Paket</StepLabel></Step>
+            </Stepper>
+          )}
+
+          {showDataSiswa && (
+          <>
           {editData && (
             <TextField label="NIS" fullWidth margin="dense" value={editData.nis} disabled />
           )}
@@ -218,18 +249,29 @@ export default function SiswaForm({ open, onClose, editData, onDelete }: Props) 
             {...register('nama_ortu')} />
           <TextField label="No. Telepon Orang Tua" fullWidth margin="dense"
             {...register('no_telp_ortu')} />
-          <Controller
-            name="status"
-            control={control}
-            render={({ field }) => (
-              <TextField label="Status" fullWidth margin="dense" select
-                {...field} value={field.value ?? 'aktif'}>
-                <MenuItem value="aktif">Aktif</MenuItem>
-                <MenuItem value="nonaktif">Nonaktif</MenuItem>
-                <MenuItem value="lulus">Lulus</MenuItem>
-              </TextField>
-            )}
-          />
+          {editData && (
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <TextField label="Status" fullWidth margin="dense" select
+                  {...field}
+                  value={field.value ?? 'aktif'}
+                  onChange={(e) => {
+                    field.onChange(e.target.value)
+                    if (e.target.value === 'nonaktif') setNonaktifWarnOpen(true)
+                  }}>
+                  <MenuItem value="aktif">Aktif</MenuItem>
+                  <MenuItem value="nonaktif">Nonaktif</MenuItem>
+                </TextField>
+              )}
+            />
+          )}
+          </>
+          )}
+
+          {showKelasPaket && (
+          <>
           <Controller
             name="kelas_id"
             control={control}
@@ -307,6 +349,8 @@ export default function SiswaForm({ open, onClose, editData, onDelete }: Props) 
               Tagihan yang akan dibuat: <strong>Rp {Number(selectedPaket.harga).toLocaleString('id-ID')}</strong>
             </Alert>
           )}
+          </>
+          )}
         </DialogContent>
         <DialogActions>
           {editData && onDelete && (
@@ -314,13 +358,36 @@ export default function SiswaForm({ open, onClose, editData, onDelete }: Props) 
               Hapus
             </Button>
           )}
+          {wizard && activeStep === 1 && (
+            <Button onClick={() => setActiveStep(0)} sx={{ mr: 'auto' }}>
+              Kembali
+            </Button>
+          )}
           <Button onClick={onClose}>Batal</Button>
-          <Button type="submit" variant="contained"
-            disabled={create.isPending || update.isPending || (!editData && !!selectedPaketId && !selectedPaket)}>
-            {editData ? 'Update' : 'Simpan'}
-          </Button>
+          {wizard && activeStep === 0 ? (
+            <Button variant="contained" onClick={handleNext}>
+              Lanjut
+            </Button>
+          ) : (
+            <Button type="submit" variant="contained"
+              disabled={create.isPending || update.isPending || (!editData && !!selectedPaketId && !selectedPaket)}>
+              {editData ? 'Update' : 'Simpan'}
+            </Button>
+          )}
         </DialogActions>
       </form>
+
+      <DeleteDialog
+        open={nonaktifWarnOpen}
+        title="Nonaktifkan Siswa"
+        description="Menyimpan status Nonaktif akan otomatis mengeluarkan siswa dari semua kelas yang diikuti beserta paketnya. Tagihan yang belum ada pembayaran ikut dihapus (tagihan yang sudah dibayar tetap disimpan). Riwayat presensi tidak terpengaruh."
+        confirmLabel="Nonaktifkan"
+        onClose={() => {
+          setNonaktifWarnOpen(false)
+          setValue('status', 'aktif')
+        }}
+        onConfirm={() => setNonaktifWarnOpen(false)}
+      />
     </Dialog>
   )
 }
