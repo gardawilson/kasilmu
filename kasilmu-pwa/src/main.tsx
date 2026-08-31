@@ -15,7 +15,13 @@ const updateSW = registerSW({
   },
   onRegisteredSW(_url, registration) {
     if (!registration) return
-    setInterval(() => registration.update(), 60 * 60 * 1000)
+    const check = () => { registration.update().catch(() => {}) }
+    // Cek update berkala + setiap kali app kembali dibuka/di-fokus,
+    // supaya client yang lama tidak dibuka tidak nyangkut di app shell basi.
+    setInterval(check, 60 * 60 * 1000)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check()
+    })
   },
 })
 
@@ -24,6 +30,13 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 menit
       refetchOnWindowFocus: false,
+      // Jangan retry error 4xx (mis. 403 role, 422 validasi) — hanya bikin
+      // banjir request & gampang men-trigger firewall hosting.
+      retry: (failureCount, error: unknown) => {
+        const status = (error as { response?: { status?: number } })?.response?.status
+        if (status && status >= 400 && status < 500) return false
+        return failureCount < 2
+      },
     },
   },
 })

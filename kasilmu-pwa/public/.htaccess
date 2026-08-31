@@ -1,0 +1,41 @@
+# ============================================================================
+# Kasilmu PWA — frontend statis (di-serve dari public_html/ pada kasilmu.com)
+# File ini ikut ter-build ke dist/ oleh Vite (copyPublicDir) lalu ter-deploy
+# oleh .github/workflows/deploy-pwa.yml. Ekstraksi di server tidak menghapus
+# file lain, jadi menambah .htaccess ini aman.
+# ============================================================================
+
+# --- SPA client-side routing -------------------------------------------------
+# Semua path yang bukan file/dir nyata diarahkan ke index.html supaya refresh
+# di /siswa, /presensi, dst. tidak 404. Aset nyata (/assets/*, /sw.js) tetap
+# di-serve langsung karena lolos cek -f.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+# --- Cache-Control ---------------------------------------------------------
+<IfModule mod_headers.c>
+  # Aset build ber-hash (nama berubah tiap build) — aman di-cache selamanya.
+  <FilesMatch "\.(js|css|woff2?|ttf|eot)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # File dengan nama tetap yang menentukan update PWA. HARUS selalu
+  # divalidasi ulang, kalau tidak client nyangkut di app shell / service
+  # worker lama (persis penyebab incident "Login gagal" 2026-08).
+  # Blok ini setelah blok di atas supaya menang untuk sw.js / workbox-*.js.
+  <FilesMatch "^(sw\.js|workbox-[^/]*\.js|index\.html|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# --- MIME ------------------------------------------------------------------
+# Tanpa ini LiteSpeed mengirim manifest sebagai application/octet-stream.
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>

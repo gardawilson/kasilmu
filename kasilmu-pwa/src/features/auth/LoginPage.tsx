@@ -1,38 +1,77 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Box, Card, TextField, Button, Typography, Alert } from '@mui/material'
-import { useAuth } from './useAuth'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Box, Card, TextField, Button, Typography, Alert } from "@mui/material";
+import { useAuth } from "./useAuth";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const { login } = useAuth()
-  const navigate = useNavigate()
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
     try {
-      await login(username, password)
-      navigate('/')
+      await login(username, password);
+      navigate("/");
     } catch (err: unknown) {
-      const msg = (err as any)?.response?.data?.errors?.username?.[0] || 'Login gagal'
-      setError(msg)
+      const e = err as {
+        code?: string;
+        response?: {
+          status?: number;
+          data?: { message?: string; errors?: { username?: string[] } };
+        };
+      };
+      let msg: string;
+      if (!e.response) {
+        // Tidak ada response = gagal di level jaringan (timeout / koneksi
+        // putus / diblok), bukan kredensial salah.
+        msg =
+          e.code === "ECONNABORTED"
+            ? "Koneksi ke server timeout. Cek jaringan lalu coba lagi."
+            : `Tidak bisa terhubung ke server (${e.code || "network error"}). Cek jaringan lalu coba lagi.`;
+      } else {
+        msg =
+          e.response.data?.errors?.username?.[0] ||
+          e.response.data?.message ||
+          `Login gagal (HTTP ${e.response.status})`;
+      }
+      setError(msg);
     }
-  }
+  };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        bgcolor: "#f5f5f5",
+      }}
+    >
       <Card sx={{ p: 4, width: 400 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, textAlign: 'center' }}>
+        <Typography
+          variant="h5"
+          sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}
+        >
           Kasilmu
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 3, textAlign: "center" }}
+        >
           Sistem Informasi Manajemen Bimbel
         </Typography>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
@@ -52,11 +91,17 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <Button type="submit" variant="contained" fullWidth size="large" sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            size="large"
+            sx={{ mt: 2 }}
+          >
             Masuk
           </Button>
         </Box>
       </Card>
     </Box>
-  )
+  );
 }

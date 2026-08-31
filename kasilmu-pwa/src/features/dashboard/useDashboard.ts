@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '../../lib/api'
+import { useAuth } from '../auth/useAuth'
 import type { ApiResponse } from '../../types'
 
 export interface DashboardData {
@@ -13,11 +14,17 @@ export interface DashboardData {
 }
 
 export function useDashboard() {
+  const { user } = useAuth()
+  // Endpoint /dashboard hanya untuk role admin (role:admin di backend).
+  // Tanpa guard ini, tutor yang mendarat di "/" memicu 403 berulang.
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
+
   return useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<DashboardData>>('/dashboard')
       return res.data.data
     },
+    enabled: isAdmin,
   })
 }

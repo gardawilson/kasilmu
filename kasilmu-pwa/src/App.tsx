@@ -24,6 +24,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <Layout>{children}</Layout>
 }
 
+// Dashboard hanya untuk admin. Role lain (tutor dsb.) diarahkan ke halaman
+// presensi supaya tidak menembak endpoint admin-only dan memicu 403.
+function HomeRoute() {
+  const { user } = useAuth()
+  const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
+  if (!isAdmin) return <Navigate to="/presensi" replace />
+  return <DashboardPage />
+}
+
 export default function App() {
   const { user, loading } = useAuth()
 
@@ -32,7 +41,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/" element={<ProtectedRoute><HomeRoute /></ProtectedRoute>} />
       <Route path="/siswa" element={<ProtectedRoute><SiswaPage /></ProtectedRoute>} />
       <Route path="/pengajar" element={<ProtectedRoute><PengajarPage /></ProtectedRoute>} />
       <Route path="/kelas" element={<ProtectedRoute><KelasPage /></ProtectedRoute>} />
