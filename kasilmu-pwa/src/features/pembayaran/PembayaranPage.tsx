@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import {
-  Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, TextField, IconButton, TablePagination, Chip, MenuItem,
-  Avatar, Tooltip, Skeleton,
+  Box, Typography, Table, TableHead, TableRow, TableCell, TableBody,
+  Button, TextField, MenuItem, Avatar, Tooltip, Skeleton,
 } from '@mui/material'
 import { Add, Edit, Delete, Payments, Inbox } from '@mui/icons-material'
 import { useTagihan, useDeleteTagihan } from './usePembayaran'
@@ -10,12 +9,17 @@ import { useSiswa } from '../siswa/useSiswa'
 import TagihanForm from './TagihanForm'
 import PembayaranForm from './PembayaranForm'
 import DeleteDialog from '../../components/ui/DeleteDialog'
+import RowActions from '../../components/ui/RowActions'
+import PageHeader from '../../components/ui/PageHeader'
+import FilterBar, { filterFieldSx, filterFieldSlotProps } from '../../components/ui/FilterBar'
+import DataTableCard from '../../components/ui/DataTableCard'
+import StatusChip, { type StatusTone } from '../../components/ui/StatusChip'
 import type { Tagihan } from '../../types'
 
-const STATUS_SX: Record<string, object> = {
-  pending:    { bgcolor: '#fef3c7', color: '#b45309' },
-  lunas:      { bgcolor: '#dcfce7', color: '#15803d' },
-  kadaluarsa: { bgcolor: '#fee2e2', color: '#dc2626' },
+const STATUS_TONE: Record<string, StatusTone> = {
+  pending: 'orange',
+  lunas: 'green',
+  kadaluarsa: 'red',
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -24,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function PembayaranPage() {
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
+  const [perPage] = useState(10)
   const [status, setStatus] = useState('')
   const [siswaFilter, setSiswaFilter] = useState('')
   const [openTagihan, setOpenTagihan] = useState(false)
@@ -36,38 +40,55 @@ export default function PembayaranPage() {
   const { data, isLoading } = useTagihan({ status, siswa_id: siswaFilter, page, per_page: perPage })
   const del = useDeleteTagihan()
 
+  const filterActive = status !== '' || siswaFilter !== ''
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-        <Box>
-          <Typography variant="h5">Pembayaran</Typography>
-          <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-            Kelola tagihan dan riwayat pembayaran siswa
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpenTagihan(true) }}>
-          Buat Tagihan
-        </Button>
-      </Box>
+      <PageHeader
+        title="Pembayaran"
+        subtitle="Kelola tagihan dan riwayat pembayaran siswa"
+        action={
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpenTagihan(true) }}>
+            Buat Tagihan
+          </Button>
+        }
+      />
 
-      <Paper sx={{ overflow: 'hidden' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <TextField select label="Status" value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1) }} sx={{ minWidth: 160 }}>
-            <MenuItem value="">Semua Status</MenuItem>
-            <MenuItem value="pending">Menunggu</MenuItem>
-            <MenuItem value="lunas">Lunas</MenuItem>
-            <MenuItem value="kadaluarsa">Kadaluarsa</MenuItem>
-          </TextField>
-          <TextField select label="Siswa" value={siswaFilter}
-            onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }} sx={{ minWidth: 200 }}>
-            <MenuItem value="">Semua Siswa</MenuItem>
-            {siswa?.data?.map((s) => (
-              <MenuItem key={s.id} value={s.id}>{s.nama}</MenuItem>
-            ))}
-          </TextField>
-        </Box>
+      <FilterBar
+        onReset={() => { setStatus(''); setSiswaFilter(''); setPage(1) }}
+        resetDisabled={!filterActive}
+      >
+        <TextField
+          select variant="standard" value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(1) }}
+          slotProps={filterFieldSlotProps}
+          sx={{ ...filterFieldSx, minWidth: 150 }}
+        >
+          <MenuItem value="">Semua Status</MenuItem>
+          <MenuItem value="pending">Menunggu</MenuItem>
+          <MenuItem value="lunas">Lunas</MenuItem>
+          <MenuItem value="kadaluarsa">Kadaluarsa</MenuItem>
+        </TextField>
+        <TextField
+          select variant="standard" value={siswaFilter}
+          onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }}
+          slotProps={filterFieldSlotProps}
+          sx={{ ...filterFieldSx, minWidth: 180 }}
+        >
+          <MenuItem value="">Semua Siswa</MenuItem>
+          {siswa?.data?.map((s) => (
+            <MenuItem key={s.id} value={s.id}>{s.nama}</MenuItem>
+          ))}
+        </TextField>
+      </FilterBar>
 
+      <DataTableCard
+        page={page}
+        lastPage={data?.meta?.last_page ?? 1}
+        total={data?.meta?.total ?? 0}
+        perPage={perPage}
+        onPageChange={setPage}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -103,73 +124,58 @@ export default function PembayaranPage() {
                 <TableRow key={t.id} hover>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: '#3b82f615', color: '#3b82f6' }}>
+                      <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: 'rgba(72,128,255,0.12)', color: '#4880ff' }}>
                         {(t.siswa?.nama ?? '?').charAt(0).toUpperCase()}
                       </Avatar>
-                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{t.siswa?.nama ?? '—'}</Typography>
+                      <Typography sx={{ fontWeight: 700, fontSize: 14, color: 'rgba(32,34,36,0.9)' }}>{t.siswa?.nama ?? '—'}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Chip
+                    <StatusChip
                       label={t.jenis === 'daftar' ? 'Pendaftaran' : 'SPP'}
-                      size="small"
-                      sx={{ fontWeight: 600,
-                        ...(t.jenis === 'daftar'
-                          ? { bgcolor: '#ede9fe', color: '#6d28d9' }
-                          : { bgcolor: '#dbeafe', color: '#1d4ed8' }) }}
+                      tone={t.jenis === 'daftar' ? 'purple' : 'blue'}
                     />
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: '#0f172a' }}>
+                  <TableCell sx={{ fontWeight: 800 }}>
                     Rp {Number(t.jumlah).toLocaleString('id-ID')}
                   </TableCell>
-                  <TableCell sx={{ color: '#475569' }}>
+                  <TableCell>
                     {t.tenggat
                       ? new Date(t.tenggat).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                       : '—'}
                   </TableCell>
                   <TableCell>
-                    <Chip label={STATUS_LABEL[t.status] ?? t.status} size="small"
-                      sx={{ fontWeight: 600, ...STATUS_SX[t.status] }} />
+                    <StatusChip
+                      label={STATUS_LABEL[t.status] ?? t.status}
+                      tone={STATUS_TONE[t.status] ?? 'grey'}
+                    />
                   </TableCell>
                   <TableCell align="center">
                     {t.status !== 'lunas' && (
                       <Tooltip title="Input Pembayaran">
                         <Button size="small" variant="outlined" startIcon={<Payments sx={{ fontSize: 14 }} />}
                           onClick={() => setBayarTagihanId(t.id)}
-                          sx={{ borderColor: '#e2e8f0', color: '#475569', fontSize: 12, py: 0.5,
-                            '&:hover': { borderColor: '#10b981', color: '#10b981', bgcolor: '#10b9810a' } }}>
+                          sx={{ borderColor: '#e2e8f0', color: '#606060', fontSize: 12, py: 0.5,
+                            '&:hover': { borderColor: '#00b69b', color: '#00b69b', bgcolor: 'rgba(0,182,155,0.06)' } }}>
                           Bayar
                         </Button>
                       </Tooltip>
                     )}
                   </TableCell>
-                  <TableCell align="right" sx={{ pr: 1 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => { setEditData(t); setOpenTagihan(true) }}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'primary.main', bgcolor: '#0d94880f' } }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hapus">
-                      <IconButton size="small" onClick={() => setDeleteId(t.id)}
-                        sx={{ color: '#94a3b8', '&:hover': { color: 'error.main', bgcolor: '#ef44440f' } }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                  <TableCell align="right" sx={{ pr: 2 }}>
+                    <RowActions
+                      actions={[
+                        { icon: <Edit />, tooltip: 'Edit', onClick: () => { setEditData(t); setOpenTagihan(true) } },
+                        { icon: <Delete />, tooltip: 'Hapus', tone: 'error', onClick: () => setDeleteId(t.id) },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          component="div" count={data?.meta?.total || 0} page={page - 1}
-          rowsPerPage={perPage} onPageChange={(_, p) => setPage(p + 1)}
-          onRowsPerPageChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1) }}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          sx={{ borderTop: '1px solid #f1f5f9' }}
-        />
-      </Paper>
+      </DataTableCard>
 
       {openTagihan && <TagihanForm open={openTagihan} onClose={() => { setOpenTagihan(false); setEditData(null) }} editData={editData} />}
       {!!bayarTagihanId && <PembayaranForm open={!!bayarTagihanId} onClose={() => setBayarTagihanId(null)} tagihanId={bayarTagihanId} />}

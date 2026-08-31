@@ -1,0 +1,17 @@
+# MySQL/MariaDB lokal untuk dev — cocok dengan produksi (MariaDB 10.11).
+# Jalankan: docker compose up -d
+services:
+  db:
+    image: mariadb:10.11
+    container_name: kasilmu-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: secret
+      MARIADB_DATABASE: kasn4685_kasilmu
+    ports:
+      - "3306:3306"
+    volumes:
+      - kasilmu-db-data:/var/lib/mysql
+
+volumes:
+  kasilmu-db-data:

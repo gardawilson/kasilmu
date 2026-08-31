@@ -2,33 +2,37 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Box, AppBar, Toolbar, Typography, Drawer, List, ListItemButton,
-  ListItemIcon, ListItemText, IconButton, Avatar, Menu, MenuItem, Divider,
+  ListItemIcon, ListItemText, IconButton, Avatar, Menu, MenuItem,
+  InputBase,
 } from '@mui/material'
 import {
   Menu as MenuIcon, Dashboard, People, School,
   Receipt, Logout, Group, Assessment, HowToReg, Grade,
-  ChevronLeft, AccountCircle, AccountBalance, CardMembership,
+  ChevronLeft, AccountBalance,
   ManageAccounts,
   AccountTree,
+  Search,
+  NotificationsNone,
+  KeyboardArrowDown,
+  Add,
 } from '@mui/icons-material'
 import { useAuth } from '../../features/auth/useAuth'
 
-const drawerWidth = 256
-const drawerCollapsed = 72
+const drawerWidth = 264
+const drawerCollapsed = 76
 
 const menu = [
-  { label: 'Dashboard', icon: <Dashboard fontSize="small" />, path: '/', color: '#3b82f6' },
-  { label: 'Siswa', icon: <People fontSize="small" />, path: '/siswa', color: '#10b981' },
-  { label: 'Pengajar', icon: <Group fontSize="small" />, path: '/pengajar', color: '#8b5cf6', hideForTutor: true },
-  { label: 'Kelas', icon: <School fontSize="small" />, path: '/kelas', color: '#0d9488' },
-  { label: 'Paket', icon: <CardMembership fontSize="small" />, path: '/paket', color: '#a855f7', hideForTutor: true },
-  { label: 'Sekolah', icon: <AccountBalance fontSize="small" />, path: '/sekolah', color: '#0284c7', hideForTutor: true },
-  { label: 'Jenjang & Tingkat', icon: <AccountTree fontSize="small" />, path: '/pendidikan', color: '#2563eb', adminOnly: true },
-  { label: 'Presensi', icon: <HowToReg fontSize="small" />, path: '/presensi', color: '#06b6d4' },
-  { label: 'Pembayaran', icon: <Receipt fontSize="small" />, path: '/pembayaran', color: '#f97316', hideForTutor: true },
-  { label: 'Nilai', icon: <Grade fontSize="small" />, path: '/nilai', color: '#ef4444' },
-  { label: 'Laporan', icon: <Assessment fontSize="small" />, path: '/laporan', color: '#64748b', hideForTutor: true },
-  { label: 'Manajemen Akun', icon: <ManageAccounts fontSize="small" />, path: '/akun', color: '#475569', adminOnly: true },
+  { label: 'Dashboard', icon: <Dashboard fontSize="small" />, path: '/', section: 'MENU' },
+  { label: 'Siswa', icon: <People fontSize="small" />, path: '/siswa', section: 'AKADEMIK' },
+  { label: 'Pengajar', icon: <Group fontSize="small" />, path: '/pengajar', section: 'AKADEMIK', hideForTutor: true },
+  { label: 'Kelas', icon: <School fontSize="small" />, path: '/kelas', section: 'AKADEMIK' },
+  { label: 'Sekolah', icon: <AccountBalance fontSize="small" />, path: '/sekolah', section: 'AKADEMIK', hideForTutor: true },
+  { label: 'Jenjang & Tingkat', icon: <AccountTree fontSize="small" />, path: '/pendidikan', section: 'AKADEMIK', adminOnly: true },
+  { label: 'Presensi', icon: <HowToReg fontSize="small" />, path: '/presensi', section: 'AKADEMIK' },
+  { label: 'Nilai', icon: <Grade fontSize="small" />, path: '/nilai', section: 'AKADEMIK' },
+  { label: 'Pembayaran', icon: <Receipt fontSize="small" />, path: '/pembayaran', section: 'KEUANGAN', hideForTutor: true },
+  { label: 'Laporan', icon: <Assessment fontSize="small" />, path: '/laporan', section: 'KEUANGAN', hideForTutor: true },
+  { label: 'Manajemen Akun', icon: <ManageAccounts fontSize="small" />, path: '/akun', section: 'SISTEM', adminOnly: true },
 ]
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void }) {
@@ -38,111 +42,92 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
   const isTutor = !!user?.roles?.some((r) => r.name === 'tutor')
   const visibleMenu = menu.filter((item) => (!item.adminOnly || isAdmin) && (!item.hideForTutor || !isTutor))
+  const sections = [...new Set(visibleMenu.map((item) => item.section))]
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'white' }}>
       <Box sx={{
-        background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
-        p: collapsed ? 1.5 : 2,
+        p: collapsed ? 1.5 : 2.5,
         display: 'flex', alignItems: 'center', gap: 1.5,
         minHeight: 64,
       }}>
         <Box sx={{
-          width: 36, height: 36, borderRadius: 2,
-          bgcolor: 'rgba(255,255,255,0.2)',
+          width: 34, height: 34, borderRadius: 2,
+          bgcolor: 'primary.main',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <Typography sx={{ color: 'white', fontWeight: 800, fontSize: 18, lineHeight: 1 }}>K</Typography>
+          <Typography sx={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1 }}>K</Typography>
         </Box>
         {!collapsed && (
-          <Box>
-            <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>
-              Kasilmu
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>
-              Manajemen Bimbel
-            </Typography>
-          </Box>
+          <Typography sx={{ color: '#202224', fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>
+            Kasilmu
+          </Typography>
         )}
       </Box>
 
-      <Box sx={{ overflowY: 'auto', flex: 1, py: 1.5, px: collapsed ? 0.75 : 1.25 }}>
-        <List disablePadding>
-          {visibleMenu.map((item) => {
-            const isActive = location.pathname === item.path
-            return (
-              <ListItemButton
-                key={item.path}
-                onClick={() => { navigate(item.path); onNavigate() }}
-                sx={{
-                  borderRadius: 2,
-                  mb: 0.5,
-                  px: collapsed ? 1 : 1.5,
-                  py: 1,
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  minHeight: 44,
-                  bgcolor: isActive ? 'primary.main' : 'transparent',
-                  '&:hover': {
-                    bgcolor: isActive ? 'primary.dark' : 'rgba(13, 148, 136, 0.06)',
-                  },
-                  transition: 'background-color 0.15s ease',
-                }}
-              >
-                <ListItemIcon sx={{
-                  minWidth: collapsed ? 0 : 36,
-                  justifyContent: 'center',
-                }}>
-                  <Box sx={{
-                    width: 30, height: 30, borderRadius: 1.5,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    bgcolor: isActive ? 'rgba(255,255,255,0.2)' : `${item.color}18`,
-                    color: isActive ? 'white' : item.color,
-                    transition: 'all 0.15s ease',
-                  }}>
-                    {item.icon}
-                  </Box>
-                </ListItemIcon>
-                {!collapsed && (
-                  <ListItemText
-                    primary={item.label}
+      <Box sx={{ overflowY: 'auto', flex: 1, py: 1, px: collapsed ? 1 : 2 }}>
+        {sections.map((section) => (
+          <Box key={section} sx={{ mb: 0.5 }}>
+            {!collapsed && (
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.06em', px: 1.5, mb: 1, mt: 2 }}>
+                {section}
+              </Typography>
+            )}
+            <List disablePadding>
+              {visibleMenu.filter((item) => item.section === section).map((item) => {
+                const isActive = location.pathname === item.path
+                return (
+                  <ListItemButton
+                    key={item.path}
+                    onClick={() => { navigate(item.path); onNavigate() }}
                     sx={{
-                      '& .MuiListItemText-primary': {
-                        fontSize: 14,
-                        fontWeight: isActive ? 600 : 500,
-                        color: isActive ? 'white' : '#334155',
-                      }
+                      borderRadius: 2,
+                      mb: 0.5,
+                      px: collapsed ? 1 : 1.5,
+                      py: 1,
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      minHeight: 42,
+                      position: 'relative',
+                      bgcolor: isActive ? 'rgba(72,128,255,0.08)' : 'transparent',
+                      '&:hover': {
+                        bgcolor: isActive ? 'rgba(72,128,255,0.08)' : '#f5f6fa',
+                      },
+                      '&::before': isActive ? {
+                        content: '""',
+                        position: 'absolute',
+                        left: collapsed ? -9 : -17, top: 6, bottom: 6, width: 4,
+                        borderRadius: '0 4px 4px 0',
+                        bgcolor: 'primary.main',
+                      } : undefined,
+                      transition: 'background-color 0.15s ease',
                     }}
-                  />
-                )}
-              </ListItemButton>
-            )
-          })}
-        </List>
-      </Box>
-
-      <Divider />
-      <Box sx={{ p: collapsed ? 0.75 : 1.25, pb: 2 }}>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', gap: 1.5,
-          px: collapsed ? 1 : 1.5, py: 1,
-          borderRadius: 2,
-          bgcolor: '#f8fafc',
-        }}>
-          <Box sx={{
-            width: 30, height: 30, borderRadius: '50%',
-            bgcolor: '#0d9488',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <AccountCircle sx={{ color: 'white', fontSize: 20 }} />
+                  >
+                    <ListItemIcon sx={{
+                      minWidth: collapsed ? 0 : 36,
+                      justifyContent: 'center',
+                      color: isActive ? 'primary.main' : '#a0aec0',
+                    }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    {!collapsed && (
+                      <ListItemText
+                        primary={item.label}
+                        sx={{
+                          '& .MuiListItemText-primary': {
+                            fontSize: 14,
+                            fontWeight: isActive ? 600 : 500,
+                            color: isActive ? 'primary.main' : '#334155',
+                          }
+                        }}
+                      />
+                    )}
+                  </ListItemButton>
+                )
+              })}
+            </List>
           </Box>
-          {!collapsed && (
-            <Typography sx={{ fontSize: 12, fontWeight: 500, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Kasilmu Admin
-            </Typography>
-          )}
-        </Box>
+        ))}
       </Box>
     </Box>
   )
@@ -178,7 +163,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           transition: 'margin-left 0.2s ease, width 0.2s ease',
         }}
       >
-        <Toolbar sx={{ gap: 1 }}>
+        <Toolbar sx={{ gap: 1.5 }}>
           <IconButton
             onClick={() => {
               if (window.innerWidth >= 900) setDesktopCollapsed(!desktopCollapsed)
@@ -189,29 +174,45 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {desktopCollapsed ? <MenuIcon /> : <ChevronLeft />}
           </IconButton>
 
+          <Box sx={{
+            display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1,
+            bgcolor: '#f5f6fa', border: '1px solid #e6e9f0', borderRadius: 999, px: 2, py: 0.9,
+            width: 320, maxWidth: '40vw',
+          }}>
+            <Search sx={{ fontSize: 18, color: '#a0aec0' }} />
+            <InputBase placeholder="Cari..." sx={{ fontSize: 14, flex: 1, color: '#202224' }} />
+          </Box>
+
           <Box sx={{ flex: 1 }}>
             {currentPage && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{
-                  width: 24, height: 24, borderRadius: 1,
-                  bgcolor: `${currentPage.color}18`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: currentPage.color,
-                }}>
-                  {currentPage.icon}
-                </Box>
-                <Typography variant="body1" sx={{ fontWeight: 600, color: '#0f172a', fontSize: 15 }}>
-                  {currentPage.label}
-                </Typography>
-              </Box>
+              <Typography sx={{ display: { xs: 'block', sm: 'none' }, fontWeight: 600, color: '#202224', fontSize: 15 }}>
+                {currentPage.label}
+              </Typography>
             )}
           </Box>
 
-          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5 }}>
-            <Avatar sx={{ width: 34, height: 34, bgcolor: '#0d9488', fontSize: 14, fontWeight: 700 }}>
+          <IconButton sx={{ color: '#94a3b8', display: { xs: 'none', sm: 'inline-flex' } }}>
+            <Add sx={{ fontSize: 22 }} />
+          </IconButton>
+
+          <IconButton sx={{ color: '#94a3b8' }}>
+            <NotificationsNone sx={{ fontSize: 22 }} />
+          </IconButton>
+
+          <Box
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', pl: 0.5 }}
+          >
+            <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}>
               {user?.name?.charAt(0)?.toUpperCase()}
             </Avatar>
-          </IconButton>
+            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#202224', lineHeight: 1.2 }}>
+                {user?.name}
+              </Typography>
+            </Box>
+            <KeyboardArrowDown sx={{ fontSize: 18, color: '#94a3b8', display: { xs: 'none', md: 'block' } }} />
+          </Box>
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
@@ -225,7 +226,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }}
           >
             <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
-              <Typography sx={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{user?.name}</Typography>
+              <Typography sx={{ fontWeight: 600, fontSize: 14, color: '#202224' }}>{user?.name}</Typography>
               <Typography sx={{ fontSize: 12, color: '#64748b' }}>{user?.email}</Typography>
             </Box>
             <MenuItem onClick={handleLogout} sx={{ mt: 0.5, color: '#ef4444', fontSize: 14 }}>

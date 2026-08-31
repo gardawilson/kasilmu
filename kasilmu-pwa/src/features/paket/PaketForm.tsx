@@ -10,23 +10,25 @@ interface Props {
   open: boolean
   onClose: () => void
   editData?: Paket | null
+  /** Wajib saat menambah paket baru — paket dimiliki oleh kelas ini. */
+  kelasId?: number
 }
 
-export default function PaketForm({ open, onClose, editData }: Props) {
+export default function PaketForm({ open, onClose, editData, kelasId }: Props) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Partial<Paket>>()
   const create = useCreatePaket()
   const update = useUpdatePaket(editData?.id || 0)
 
   useEffect(() => {
     if (open) {
-      reset(editData ?? { nama: '', jumlah_pertemuan: 12, deskripsi: '' })
+      reset(editData ?? { nama: '', jumlah_pertemuan: 12, harga: 0, deskripsi: '' })
     }
   }, [open, editData, reset])
 
   const onSubmit = async (data: Partial<Paket>) => {
     try {
       if (editData) await update.mutateAsync(data)
-      else await create.mutateAsync(data)
+      else await create.mutateAsync({ ...data, kelas_id: kelasId })
       onClose()
     } catch { /* handled */ }
   }
@@ -42,6 +44,9 @@ export default function PaketForm({ open, onClose, editData }: Props) {
           <TextField label="Jumlah Pertemuan" fullWidth margin="dense" required type="number"
             {...register('jumlah_pertemuan', { required: 'Jumlah pertemuan wajib diisi', min: { value: 1, message: 'Minimal 1' }, valueAsNumber: true })}
             error={!!errors.jumlah_pertemuan} helperText={errors.jumlah_pertemuan?.message} />
+          <TextField label="Harga (Rp)" fullWidth margin="dense" required type="number"
+            {...register('harga', { required: 'Harga wajib diisi', min: { value: 0, message: 'Tidak boleh negatif' }, valueAsNumber: true })}
+            error={!!errors.harga} helperText={errors.harga?.message ?? 'Harga tagihan SPP saat siswa mengambil paket ini'} />
           <TextField label="Deskripsi" fullWidth margin="dense" multiline rows={2}
             {...register('deskripsi')} />
         </DialogContent>

@@ -1,14 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
-import type { Paket, SiswaPaket, HargaPaket, ApiResponse } from '../../types'
+import type { Paket, SiswaPaket, ApiResponse } from '../../types'
 
-export function usePaketList(params: { page?: number; per_page?: number } = {}) {
+export function usePaketList(params: { kelas_id?: number; page?: number; per_page?: number } = {}) {
   return useQuery({
     queryKey: ['paket', params],
     queryFn: async () => {
       const res = await api.get<ApiResponse<Paket[]>>('/paket', { params })
       return res.data
     },
+  })
+}
+
+/** Daftar paket milik satu kelas. */
+export function useKelasPaket(kelasId: number) {
+  return useQuery({
+    queryKey: ['paket', { kelas_id: kelasId }],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<Paket[]>>('/paket', {
+        params: { kelas_id: kelasId, per_page: 100 },
+      })
+      return res.data
+    },
+    enabled: !!kelasId,
   })
 }
 
@@ -97,22 +111,3 @@ export function useDeleteSiswaPaket() {
   })
 }
 
-export function useHargaPaket(kelasId: number) {
-  return useQuery({
-    queryKey: ['harga-paket', kelasId],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<HargaPaket[]>>('/harga-paket', { params: { kelas_id: kelasId } })
-      return res.data
-    },
-    enabled: !!kelasId,
-  })
-}
-
-export function useSetHargaPaket() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: { kelas_id: number; paket_id: number; harga: number }) =>
-      api.post('/harga-paket', data),
-    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['harga-paket', variables.kelas_id] }),
-  })
-}

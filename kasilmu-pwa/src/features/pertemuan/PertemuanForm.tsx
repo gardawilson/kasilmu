@@ -13,9 +13,10 @@ interface Props {
   open: boolean
   onClose: () => void
   editData?: Pertemuan | null
+  onDelete?: () => void
 }
 
-export default function PertemuanForm({ open, onClose, editData }: Props) {
+export default function PertemuanForm({ open, onClose, editData, onDelete }: Props) {
   const { user } = useAuth()
   const isAdmin = !!user?.roles?.some((r) => r.name === 'admin')
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Partial<Pertemuan>>()
@@ -80,6 +81,11 @@ export default function PertemuanForm({ open, onClose, editData }: Props) {
           </TextField>
         </DialogContent>
         <DialogActions>
+          {editData && onDelete && (
+            <Button color="error" onClick={onDelete} sx={{ mr: 'auto' }}>
+              Hapus
+            </Button>
+          )}
           <Button onClick={onClose}>Batal</Button>
           <Button type="submit" variant="contained" disabled={create.isPending || update.isPending}>
             {editData ? 'Update' : 'Simpan'}

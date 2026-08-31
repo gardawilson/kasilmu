@@ -143,17 +143,19 @@ export interface Nilai {
 
 export interface Paket {
   id: number
+  kelas_id: number
   nama: string
   jumlah_pertemuan: number
+  harga: number | string
   deskripsi: string | null
+  kelas?: Kelas
 }
 
+/** Bentuk "pilihan paket untuk sebuah kelas" — harga kini menyatu di Paket. */
 export interface HargaPaket {
-  id: number
-  kelas_id: number
   paket_id: number
-  harga: number
-  paket?: Paket
+  harga: number | string
+  paket: Paket
 }
 
 export interface SiswaPaket {
