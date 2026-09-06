@@ -9,21 +9,58 @@ import theme from './lib/theme'
 import { AuthProvider } from './features/auth/useAuth'
 import App from './App'
 
-const updateSW = registerSW({
-  onNeedRefresh() {
-    updateSW(true)
+let refreshing = false
+const forceReload = () => {
+  if (refreshing) return
+  refreshing = true
+  window.location.reload()
+}
+
+registerSW({
+  // Mode autoUpdate: hook ini dipanggil saat service worker baru telah
+  // take-control. Reload otomatis supaya client langsung dapat bundle terbaru
+  // tanpa perlu refresh manual / hapus cache Chrome.
+  onNeedReload() {
+    forceReload()
   },
+  onOfflineReady() {},
   onRegisteredSW(_url, registration) {
     if (!registration) return
     const check = () => { registration.update().catch(() => {}) }
-    // Cek update berkala + setiap kali app kembali dibuka/di-fokus,
-    // supaya client yang lama tidak dibuka tidak nyangkut di app shell basi.
-    setInterval(check, 60 * 60 * 1000)
-    document.addEventListener('visibilitychange', () => {
+    // Cek update sesegera mungkin, lalu berkala + saat app kembali dibuka/
+    // di-fokus, supaya client yang tidak dibuka tidak nyangkut di app shell basi.
+    check()
+    const interval = setInterval(check, 30 * 60 * 1000)
+    const onVisible = () => {
       if (document.visibilityState === 'visible') check()
+    }
+    const onWake = () => check()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('pageshow', onWake)
+    window.addEventListener('online', onWake)
+    window.addEventListener('beforeunload', () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('pageshow', onWake)
+      window.removeEventListener('online', onWake)
     })
   },
 })
+
+// Fallback keamanan: kalau browser mengganti service worker tanpa memicu
+// onNeedReload (edge case Android/Chrome), tetap paksa reload supaya client
+// tidak terus menjalankan app shell lama.
+if ('serviceWorker' in navigator) {
+  let hadController = !!navigator.serviceWorker.controller
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) {
+      // Kontrol pertama = instalasi awal, bukan update — jangan reload.
+      hadController = true
+      return
+    }
+    forceReload()
+  })
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
