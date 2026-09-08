@@ -52,6 +52,8 @@ export interface Siswa {
   status: 'aktif' | 'nonaktif' | 'lulus'
   kelas?: Kelas[]
   siswa_pakets?: SiswaPaket[]
+  /** tanggal siswa pertama kali terdaftar; tersimpan permanen di tabel siswas */
+  tgl_daftar?: string | null
 }
 
 export interface Pengajar {

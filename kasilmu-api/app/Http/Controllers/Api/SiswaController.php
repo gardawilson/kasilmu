@@ -102,6 +102,7 @@ class SiswaController
         try {
             $siswa = DB::transaction(function () use ($validated, $kelasId, $paketId, $tglMulaiPaket) {
                 $validated['nis'] = $this->generateNis();
+                $validated['tgl_daftar'] = $tglMulaiPaket;
                 $siswa = Siswa::create($validated);
 
                 $kela = Kela::findOrFail($kelasId);

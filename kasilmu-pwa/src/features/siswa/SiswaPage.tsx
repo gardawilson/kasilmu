@@ -120,6 +120,17 @@ function MemberCard({
                 .join(", ")
             : "Belum ada paket"}
         </Typography>
+
+        <Typography sx={{ ...groupLabelSx, mt: 1.5 }}>Tanggal Bergabung</Typography>
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: "rgba(32,34,36,0.8)", mt: 0.25 }}>
+          {siswa.tgl_daftar
+            ? new Date(siswa.tgl_daftar).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "—"}
+        </Typography>
       </Box>
     </Paper>
   );

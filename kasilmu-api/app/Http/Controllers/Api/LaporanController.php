@@ -62,6 +62,13 @@ class LaporanController
             $query->where('presensis.siswa_id', $request->siswa_id);
         }
 
+        if ($search = $request->search) {
+            $query->whereHas('siswa', function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                    ->orWhere('nis', 'like', "%{$search}%");
+            });
+        }
+
         if ($kelasId = $request->kelas_id) {
             $query->where('pertemuans.kelas_id', $kelasId);
         }

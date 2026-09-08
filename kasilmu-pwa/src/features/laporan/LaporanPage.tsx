@@ -7,7 +7,7 @@ import {
   useLaporanKeuangan, useLaporanSiswa, useLaporanKehadiran, useLaporanGaji,
   useLaporanKehadiranPengajar,
 } from './useLaporan'
-import { useSiswa } from '../siswa/useSiswa'
+import { Search } from '@mui/icons-material'
 import { useKelas } from '../kelas/useKelas'
 import { usePengajar } from '../pengajar/usePengajar'
 import PageHeader from '../../components/ui/PageHeader'
@@ -216,16 +216,15 @@ function LaporanSiswaTab() {
 }
 
 function LaporanKehadiranTab() {
-  const [siswaFilter, setSiswaFilter] = useState('')
+  const [search, setSearch] = useState('')
   const [kelasFilter, setKelasFilter] = useState('')
   const [tglMulai, setTglMulai] = useState('')
   const [tglSelesai, setTglSelesai] = useState('')
   const [page, setPage] = useState(1)
   const [detailSiswa, setDetailSiswa] = useState<{ id: number; nama: string; nis?: string } | null>(null)
-  const { data: siswa } = useSiswa({ per_page: 100 })
   const { data: kelas } = useKelas({ per_page: 100 })
   const { data, isLoading } = useLaporanKehadiran({
-    siswa_id: siswaFilter || undefined,
+    search: search || undefined,
     kelas_id: kelasFilter || undefined,
     tgl_mulai: tglMulai || undefined,
     tgl_selesai: tglSelesai || undefined,
@@ -235,18 +234,20 @@ function LaporanKehadiranTab() {
   return (
     <Box>
       <FilterBar
-        onReset={() => { setSiswaFilter(''); setKelasFilter(''); setTglMulai(''); setTglSelesai(''); setPage(1) }}
-        resetDisabled={!siswaFilter && !kelasFilter && !tglMulai && !tglSelesai}
+        onReset={() => { setSearch(''); setKelasFilter(''); setTglMulai(''); setTglSelesai(''); setPage(1) }}
+        resetDisabled={!search && !kelasFilter && !tglMulai && !tglSelesai}
       >
         <Seg label="Siswa">
-          <TextField select variant="standard" value={siswaFilter}
-            onChange={(e) => { setSiswaFilter(e.target.value); setPage(1) }}
-            slotProps={filterFieldSlotProps} sx={{ ...filterFieldSx, minWidth: 150 }}>
-            <MenuItem value="">Semua Siswa</MenuItem>
-            {siswa?.data?.map((s) => (
-              <MenuItem key={s.id} value={s.id}>{s.nama}</MenuItem>
-            ))}
-          </TextField>
+          <TextField variant="standard" placeholder="Cari nama atau NIS..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            slotProps={{
+              input: {
+                disableUnderline: true,
+                startAdornment: <Search sx={{ mr: 1, color: '#94a3b8', fontSize: 18 }} />,
+              },
+            }}
+            sx={{ ...filterFieldSx, minWidth: 200 }} />
         </Seg>
         <Seg label="Kelas">
           <TextField select variant="standard" value={kelasFilter}

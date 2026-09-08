@@ -114,7 +114,7 @@ export default function PertemuanPage() {
   const [presensiMode, setPresensiMode] = useState<'absensi' | 'catatan' | 'full'>('full')
 
   const { data: kelas } = useKelas({ per_page: 100 })
-  const { data, isLoading } = usePertemuan({ kelas_id: kelasFilter, tgl: tglFilter })
+  const { data, isLoading } = usePertemuan({ kelas_id: kelasFilter, tgl: tglFilter, per_page: 20 })
   const del = useDeletePertemuan()
 
   const filterActive = kelasFilter !== '' || tglFilter !== today()
