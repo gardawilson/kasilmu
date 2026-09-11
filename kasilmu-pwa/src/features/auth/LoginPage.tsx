@@ -101,6 +101,14 @@ export default function LoginPage() {
             Masuk
           </Button>
         </Box>
+
+        <Typography
+          variant="caption"
+          color="text.disabled"
+          sx={{ display: "block", textAlign: "center", mt: 2 }}
+        >
+          v{__APP_VERSION__} · {new Date(__BUILD_TIME__).toLocaleString("id-ID")}
+        </Typography>
       </Card>
     </Box>
   );
